@@ -1,0 +1,3 @@
+[submodule "uart_socket"]
+	path = uart_socket
+	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/hc/uart_socket.git
