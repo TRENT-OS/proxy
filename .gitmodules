@@ -4,3 +4,6 @@
 [submodule "seos_libs"]
 	path = seos_libs
 	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/hc/seos_libs.git
+[submodule "TinyFrame"]
+	path = TinyFrame
+	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/ext/tinyframe.git
