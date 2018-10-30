@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 
 file(GLOB SOURCES "src/*.c" "src/*.cpp"
     "uart_socket/src/uart_hdlc.c"
+    "uart_socket/src/uart_io_host.c"
     "src/TinyFrame.c")
 
 set_source_files_properties( ${SOURCES} PROPERTIES LANGUAGE CXX )
