@@ -5,13 +5,15 @@ cmake_minimum_required(VERSION 3.10)
 file(GLOB SOURCES "src/*.c" "src/*.cpp"
     "uart_socket/src/uart_hdlc.c"
     "uart_socket/src/uart_io_host.c"
-    "src/TinyFrame.c")
+    "TinyFrame/demo/utils.c"
+    "TinyFrame/TinyFrame.c")
 
 set_source_files_properties( ${SOURCES} PROPERTIES LANGUAGE CXX )
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
 include_directories("seos_libs/src")
+include_directories("TinyFrame/demo")
 
 add_subdirectory(configs)
 
