@@ -1,8 +1,11 @@
 
+#pragma once
+
 #include "type.h"
 #include "uart_io_host.h"
 #include "uart_hdlc.h"
 #include "GuestConnector.h"
+#include "IoDevices.h"
 
 #include "utils.h"
 
@@ -23,7 +26,7 @@
 
 using namespace std;
 
-class Socket
+class Socket : public InputDevice, public OutputDevice
 {
     public:
     Socket(int port, string hostName)

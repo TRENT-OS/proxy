@@ -5,6 +5,7 @@
 
 #include "GuestConnector.h"
 #include "Socket.h"
+#include "IoDevices.h"
 
 #include "utils.h"
 
@@ -27,7 +28,7 @@ using namespace std;
 
 mutex accessToPseudoDevice;
 
-void GuestConnectorToGuest(string pseudoDevice, Socket *socket)
+void GuestConnectorToGuest(string pseudoDevice, InputDevice *socket)
 {
     size_t bufSize = 256;
     vector<unsigned char> buffer(bufSize);
@@ -65,7 +66,7 @@ void GuestConnectorToGuest(string pseudoDevice, Socket *socket)
     }
 }
 
-void GuestConnectorFromGuest(string pseudoDevice, Socket *socket)
+void GuestConnectorFromGuest(string pseudoDevice, OutputDevice *socket)
 {
     size_t bufSize = 1024;
     vector<unsigned char> buffer(bufSize);
