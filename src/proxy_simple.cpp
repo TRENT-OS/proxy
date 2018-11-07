@@ -5,6 +5,7 @@
 
 #include "GuestConnector.h"
 #include "Socket.h"
+#include "ServerSocket.h"
 #include "IoDevices.h"
 
 #include "utils.h"
@@ -23,6 +24,7 @@
 #include <thread>
 #include <vector>
 #include <mutex>
+#include <iostream>
 
 using namespace std;
 
@@ -109,11 +111,84 @@ void GuestConnectorFromGuest(string pseudoDevice, OutputDevice *socket)
     }
 }
 
+class OutputLogger : public OutputDevice
+{
+    public:
+    OutputLogger() {}
+
+    int Write(vector<unsigned char> buf) 
+    { 
+        cout << string((char *)(&buf[0]), buf.size());
+    }
+};
+
+class DeviceReader : public InputDevice
+{
+    public:
+    DeviceReader(int fd) : fd(fd) {}
+
+    int Read(std::vector<unsigned char> &buf)
+    {
+        return read(fd, &buf[0], buf.size());
+    }
+
+    private:
+    int fd;
+};
+
+void ServerThread(DeviceReader reader, OutputLogger outputLogger)
+{
+    size_t bufSize = 1024;
+    vector<unsigned char> buffer(bufSize);
+    int readBytes, writtenBytes;
+
+    while (true)
+    {
+        buffer.resize(bufSize);
+        readBytes = reader.Read(buffer);
+        if (readBytes > 0)
+        {
+            //dumpFrame(&buffer[0], readBytes);
+            //printf("server thread received data: %d.\n", readBytes);
+            writtenBytes = outputLogger.Write(buffer);
+        }
+        else
+        {
+            // Not used because: not meaningful "Resource temporarily unavailable" 
+            //printf("ServerThread: guest read failed.\n");
+        }
+    }
+}
+
+void LanServer()
+{
+    ServerSocket serverSocket(7999);
+    socklen_t clientLength;
+    struct sockaddr_in clientAddress;
+
+    serverSocket.Listen(5);
+
+    vector<thread> threads;
+
+    while (true)
+    {
+        clientLength = sizeof(clientAddress);
+        int newsockfd = serverSocket.Accept((struct sockaddr *) &clientAddress, &clientLength);
+        printf("start server thread: in port %d, in address %x\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr);
+        threads.push_back(thread{ServerThread, DeviceReader(newsockfd), OutputLogger()});
+    }
+}
+
+
 #define SERVER_PORT 8883
 #define SERVER_NAME "HAR-test-HUB.azure-devices.net"
 
 int main(int argc, const char *argv[])
 {
+    LanServer();
+    return 0;
+
+
     int port = SERVER_PORT;
     string hostName {SERVER_NAME};
     string pseudoDevice {argv[1]};
