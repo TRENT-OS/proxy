@@ -3,6 +3,9 @@
 #include "uart_io_host.h"
 #include "uart_hdlc.h"
 
+#include "GuestConnector.h"
+#include "Socket.h"
+
 #include "utils.h"
 
 #include <stdio.h>
@@ -23,125 +26,6 @@
 using namespace std;
 
 mutex accessToPseudoDevice;
-
-class GuestConnector
-{
-    public:
-    enum GuestDirection
-    {
-        FROM_GUEST,
-        TO_GUEST
-    };
-
-    GuestConnector(string pseudoDevice, GuestDirection guestDirection)
-        : pseudoDevice(pseudoDevice)
-    {
-        if (guestDirection == FROM_GUEST)
-        {
-            UartIoHostInit(
-                &uartIoHost, 
-                pseudoDevice.c_str(), 
-                PARAM(isBlocking, false),
-                PARAM(readOnly, true),
-                PARAM(writeOnly, false));
-        }
-        else
-        {
-            UartIoHostInit(
-                &uartIoHost, 
-                pseudoDevice.c_str(), 
-                PARAM(isBlocking, true),
-                PARAM(readOnly, false),
-                PARAM(writeOnly, true));
-        }
-
-
-        UartHdlcInit(&uartHdlc, &uartIoHost.implementation);
-
-        isOpen = Open() >= 0;
-    }
-
-    ~GuestConnector() 
-    { 
-        Close();
-        UartHdlcDeInit(&uartHdlc); 
-    }
-
-    int Open() { return UartHdlcOpen(&uartHdlc); }
-    int Close() { return UartHdlcClose(&uartHdlc); }
-    int Read(unsigned int length, unsigned char *buf) { return UartHdlcRead(&uartHdlc, length, buf); } 
-    int Write(unsigned int length, unsigned char *buf) { return UartHdlcWrite(&uartHdlc, length, buf); }
-
-    bool IsOpen() const { return isOpen; }
-
-    private:
-    string pseudoDevice;
-    UartIoHost uartIoHost;
-    UartHdlc uartHdlc;
-    bool isOpen;
-};
-
-class Socket
-{
-    public:
-    Socket(int port, string hostName)
-    {
-        struct sockaddr_in serv_addr;
-        struct hostent *server;
-
-        sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0)
-        {
-            error("ERROR opening socket");
-        }
-        else
-        {
-            server = gethostbyname(hostName.c_str());
-            if (server == NULL) 
-            {
-                error("ERROR, no such host");
-            }
-            else
-            {
-                bzero((char *) &serv_addr, sizeof(serv_addr));
-                serv_addr.sin_family = AF_INET;
-                bcopy((char *)server->h_addr, 
-                    (char *)&serv_addr.sin_addr.s_addr,
-                    server->h_length);
-
-                serv_addr.sin_port = htons(port);
-                
-                if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
-                {
-                    error("ERROR connecting");
-                } 
-            }
-        }
-    }
-
-    ~Socket()
-    {
-        close(sockfd);
-    }
-
-    int Read(vector<unsigned char> &buf)
-    {
-        return read(sockfd, &buf[0], buf.size());
-    }
-
-    int Write(vector<unsigned char> buf)
-    {
-        return write(sockfd, &buf[0], buf.size());
-    }
-
-    private:
-    int sockfd;
-
-    void error(const char *msg)
-    {
-        fprintf(stderr,"msg\n");
-    }
-};
 
 void GuestConnectorToGuest(string pseudoDevice, Socket *socket)
 {
