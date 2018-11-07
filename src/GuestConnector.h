@@ -60,8 +60,16 @@ class GuestConnector
 
     int Open() { return UartHdlcOpen(&uartHdlc); }
     int Close() { return UartHdlcClose(&uartHdlc); }
-    int Read(unsigned int length, unsigned char *buf) { return UartHdlcRead(&uartHdlc, length, buf); } 
-    int Write(unsigned int length, unsigned char *buf) { return UartHdlcWrite(&uartHdlc, length, buf); }
+
+    int Read(unsigned int length, char *buf, unsigned int *logicalChannel) 
+    { 
+        return UartHdlcRead(&uartHdlc, length, buf, logicalChannel); 
+    } 
+
+    int Write(unsigned int logicalChannel, unsigned int length, char *buf) 
+    { 
+        return UartHdlcWrite(&uartHdlc, logicalChannel, length, buf); 
+    }
 
     bool IsOpen() const { return isOpen; }
 

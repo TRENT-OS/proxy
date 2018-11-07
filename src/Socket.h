@@ -69,12 +69,12 @@ class Socket : public InputDevice, public OutputDevice
         close(sockfd);
     }
 
-    int Read(vector<unsigned char> &buf)
+    int Read(vector<char> &buf)
     {
         return read(sockfd, &buf[0], buf.size());
     }
 
-    int Write(vector<unsigned char> buf)
+    int Write(vector<char> buf)
     {
         return write(sockfd, &buf[0], buf.size());
     }
