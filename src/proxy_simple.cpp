@@ -221,6 +221,8 @@ int main(int argc, const char *argv[])
 
     guestListeners.SetListener(1, &socket);
 
+    allThreads.push_back(thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, 1), &socket});
+
     allThreads.push_back(thread{GuestConnectorFromGuest, pseudoDevice, &guestListeners});
 
     LanServer(pseudoDevice, allThreads);
