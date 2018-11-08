@@ -54,19 +54,15 @@ class GuestConnector
         {
             UartIoHostInit(
                 &uartIoHost, 
-                pseudoDevice->GetResource().c_str(), 
-                PARAM(isBlocking, false),
-                PARAM(readOnly, true),
-                PARAM(writeOnly, false));
+                pseudoDevice->GetResource().c_str(),
+                UART_IO_HOST_FLAG_READ_ONLY);
         }
         else
         {
             UartIoHostInit(
                 &uartIoHost, 
-                pseudoDevice->GetResource().c_str(), 
-                PARAM(isBlocking, true),
-                PARAM(readOnly, false),
-                PARAM(writeOnly, true));
+                pseudoDevice->GetResource().c_str(),
+                UART_IO_HOST_FLAG_WRITE_ONLY);
         }
 
         UartHdlcInit(&uartHdlc, &uartIoHost.implementation);
