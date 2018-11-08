@@ -29,6 +29,13 @@
 
 using namespace std;
 
+enum LogicalChannels
+{
+    LOGICAL_CHANNEL_LAN = 0,
+    LOGICAL_CHANNEL_WAN = 1,
+    LOGICAL_CHANNEL_MAX
+};
+
 void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
     size_t bufSize = 256;
@@ -140,7 +147,7 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads)
     ServerSocket serverSocket(7999);
     socklen_t clientLength;
     struct sockaddr_in clientAddress;
-    unsigned int logicalChannel = 0;
+    unsigned int logicalChannel = LOGICAL_CHANNEL_LAN;
 
     serverSocket.Listen(5);
 
@@ -165,17 +172,21 @@ int main(int argc, const char *argv[])
 {
     int port = SERVER_PORT;
     string hostName {SERVER_NAME};
-    GuestListeners guestListeners{2};
+
+    GuestListeners guestListeners{LOGICAL_CHANNEL_MAX};
     vector<thread> allThreads;
     string pseudoDeviceName{argv[1]};
     SharedResource<string> pseudoDevice{pseudoDeviceName};
 
-    Socket socket {port, hostName};
+    Socket wanSocket {port, hostName};
 
-    guestListeners.SetListener(1, &socket);
+    // Register the WAN socket as listening device for the WAN logical channel.
+    guestListeners.SetListener(LOGICAL_CHANNEL_WAN, &wanSocket);
 
-    allThreads.push_back(thread{GuestConnectorToGuest, &pseudoDevice, PARAM(logicalChannel, 1), &socket});
+    // The "WAN thread": is waiting for data from the WAN and forwards it to the WAN logical channel.
+    allThreads.push_back(thread{GuestConnectorToGuest, &pseudoDevice, PARAM(logicalChannel, LOGICAL_CHANNEL_WAN), &wanSocket});
 
+    // The "GUEST thread" is receiving all hdlc frames and distributing them to the according guest listeners.
     allThreads.push_back(thread{GuestConnectorFromGuest, &pseudoDevice, &guestListeners});
 
     LanServer(&pseudoDevice, allThreads);
