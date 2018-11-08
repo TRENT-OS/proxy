@@ -114,6 +114,7 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads)
         int newsockfd = serverSocket.Accept((struct sockaddr *) &clientAddress, &clientLength);
         printf("start server thread: in port %d, in address %x\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr);
 
+        // A new "LAN thread" is started: it is waiting for data from the LAN and forwards it to the LAN logical channel.
         allThreads.push_back(thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, logicalChannel), new DeviceReader(newsockfd)});
     }
 }
@@ -145,5 +146,7 @@ int main(int argc, const char *argv[])
 
     LanServer(&pseudoDevice, allThreads);
 
+    // We never get here -> no cleanup
+    
     return 0;
 }
