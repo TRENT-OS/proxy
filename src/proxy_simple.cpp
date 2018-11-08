@@ -28,8 +28,6 @@
 
 using namespace std;
 
-mutex accessToPseudoDevice;
-
 class GuestListeners
 {
     public:
@@ -73,7 +71,7 @@ class GuestListeners
     mutex lock;
 };
 
-void GuestConnectorToGuest(string pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
+void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
     size_t bufSize = 256;
     vector<char> buffer(bufSize);
@@ -93,10 +91,8 @@ void GuestConnectorToGuest(string pseudoDevice, unsigned int logicalChannel, Inp
         {
             printf("GuestConnectorToGuest: bytes received from socket: %d.\n", readBytes);
             fflush(stdout);
-            accessToPseudoDevice.lock();
             writtenBytes = guestConnector.Write(PARAM(logicalChannel, logicalChannel), readBytes, &buffer[0]);
             writtenBytes = 0;
-            accessToPseudoDevice.unlock();
 
             if (writtenBytes < 0)
             {
@@ -111,7 +107,7 @@ void GuestConnectorToGuest(string pseudoDevice, unsigned int logicalChannel, Inp
     }
 }
 
-void GuestConnectorFromGuest(string pseudoDevice, GuestListeners *guestListeners)
+void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListeners *guestListeners)
 {
     size_t bufSize = 1024;
     vector<char> buffer(bufSize);
@@ -130,9 +126,7 @@ void GuestConnectorFromGuest(string pseudoDevice, GuestListeners *guestListeners
     {
         unsigned int logicalChannel;
         buffer.resize(bufSize);
-        accessToPseudoDevice.lock();
         int readBytes = guestConnector.Read(buffer.size(), &buffer[0], &logicalChannel);
-        accessToPseudoDevice.unlock();
         if (readBytes > 0)
         {
             //dumpFrame(&buffer[0], readBytes);
@@ -183,7 +177,7 @@ void ServerThread(DeviceReader reader, OutputLogger outputLogger)
     }
 }
 
-void LanServer(string pseudoDevice, vector<thread> &allThreads)
+void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads)
 {
     ServerSocket serverSocket(7999);
     socklen_t clientLength;
@@ -213,19 +207,20 @@ int main(int argc, const char *argv[])
 {
     int port = SERVER_PORT;
     string hostName {SERVER_NAME};
-    string pseudoDevice {argv[1]};
-    GuestListeners guestListeners(2);
+    GuestListeners guestListeners{2};
     vector<thread> allThreads;
-    
+    string pseudoDeviceName{argv[1]};
+    SharedResource<string> pseudoDevice{pseudoDeviceName};
+
     Socket socket {port, hostName};
 
     guestListeners.SetListener(1, &socket);
 
-    allThreads.push_back(thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, 1), &socket});
+    allThreads.push_back(thread{GuestConnectorToGuest, &pseudoDevice, PARAM(logicalChannel, 1), &socket});
 
-    allThreads.push_back(thread{GuestConnectorFromGuest, pseudoDevice, &guestListeners});
+    allThreads.push_back(thread{GuestConnectorFromGuest, &pseudoDevice, &guestListeners});
 
-    LanServer(pseudoDevice, allThreads);
+    LanServer(&pseudoDevice, allThreads);
 
 #if 0
     for (auto t : allThreads)
