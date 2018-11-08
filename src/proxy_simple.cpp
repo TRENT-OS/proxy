@@ -1,31 +1,12 @@
 
-#include "type.h"
-#include "uart_io_host.h"
-#include "uart_hdlc.h"
-
 #include "GuestConnector.h"
 #include "Socket.h"
 #include "ServerSocket.h"
 #include "IoDevices.h"
 #include "GuestListeners.h"
-
 #include "utils.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <errno.h>
-
-#include <string>
 #include <thread>
-#include <vector>
-#include <mutex>
-#include <iostream>
 
 using namespace std;
 
@@ -114,30 +95,6 @@ void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListener
         {
             // Not used because: not meaningful "Resource temporarily unavailable" 
             //printf("GuestConnectorFromGuest: guest read failed.\n");
-        }
-    }
-}
-
-void ServerThread(DeviceReader reader, OutputLogger outputLogger)
-{
-    size_t bufSize = 1024;
-    vector<char> buffer(bufSize);
-    int readBytes, writtenBytes;
-
-    while (true)
-    {
-        buffer.resize(bufSize);
-        readBytes = reader.Read(buffer);
-        if (readBytes > 0)
-        {
-            //dumpFrame(&buffer[0], readBytes);
-            //printf("server thread received data: %d.\n", readBytes);
-            writtenBytes = outputLogger.Write(buffer);
-        }
-        else
-        {
-            // Not used because: not meaningful "Resource temporarily unavailable" 
-            //printf("ServerThread: guest read failed.\n");
         }
     }
 }
