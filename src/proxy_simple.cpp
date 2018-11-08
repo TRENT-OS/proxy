@@ -156,12 +156,8 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads)
         clientLength = sizeof(clientAddress);
         int newsockfd = serverSocket.Accept((struct sockaddr *) &clientAddress, &clientLength);
         printf("start server thread: in port %d, in address %x\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr);
-        
-        //allThreads.push_back(thread{ServerThread, DeviceReader(newsockfd), OutputLogger()});eeeeee
 
         allThreads.push_back(thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, logicalChannel), new DeviceReader(newsockfd)});
-
-        // logicalChannel = (logicalChannel + 1) % 2;
     }
 }
 
@@ -175,6 +171,7 @@ int main(int argc, const char *argv[])
 
     GuestListeners guestListeners{LOGICAL_CHANNEL_MAX};
     vector<thread> allThreads;
+
     string pseudoDeviceName{argv[1]};
     SharedResource<string> pseudoDevice{pseudoDeviceName};
 
@@ -190,13 +187,6 @@ int main(int argc, const char *argv[])
     allThreads.push_back(thread{GuestConnectorFromGuest, &pseudoDevice, &guestListeners});
 
     LanServer(&pseudoDevice, allThreads);
-
-#if 0
-    for (auto t : allThreads)
-    {
-        t->join();
-    }
-#endif
 
     return 0;
 }
