@@ -30,7 +30,7 @@ class SharedResource
     SharedResource(T value) : value(value) {}
 
     void Lock() const { lock.lock(); }
-    void UnLock() const { lock.lock(); }
+    void UnLock() const { lock.unlock(); }
     T GetResource() const { return value; }
 
     private:
