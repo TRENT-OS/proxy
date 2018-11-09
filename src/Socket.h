@@ -1,28 +1,17 @@
 
 #pragma once
 
-#include "type.h"
-#include "uart_io_host.h"
-#include "uart_hdlc.h"
-#include "GuestConnector.h"
 #include "IoDevices.h"
-
-#include "utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <string.h>
+
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
-
-#include <string>
-#include <thread>
-#include <vector>
-#include <mutex>
 
 using namespace std;
 
