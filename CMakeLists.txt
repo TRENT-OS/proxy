@@ -15,9 +15,8 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 include_directories("seos_libs/src")
 include_directories("TinyFrame/demo")
 
-add_subdirectory(configs)
-
 target_compile_options(${PROJECT_NAME} PRIVATE -pthread)
 target_include_directories(${PROJECT_NAME} PRIVATE uart_socket/src)
-target_include_directories(${PROJECT_NAME} PUBLIC ../seos_libs/include)
-target_link_libraries(${PROJECT_NAME} configs pthread)
+target_include_directories(${PROJECT_NAME} PUBLIC seos_libs/include)
+target_include_directories(${PROJECT_NAME} PUBLIC configs/include)
+target_link_libraries(${PROJECT_NAME} pthread)
