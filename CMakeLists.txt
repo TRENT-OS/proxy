@@ -18,9 +18,9 @@ set_source_files_properties(${SOURCE_FILES} PROPERTIES LANGUAGE CXX)
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         configs/include
+        seos_libs/include
         uart_socket/src
         TinyFrame/demo
-        seos_libs/include
 )
 
 
