@@ -1,6 +1,6 @@
-project(mqtt_proxy C CXX)
-
 cmake_minimum_required(VERSION 3.10)
+
+project(mqtt_proxy C CXX)
 
 file(GLOB SOURCES "src/*.c" "src/*.cpp"
     "uart_socket/src/uart_hdlc.c"
