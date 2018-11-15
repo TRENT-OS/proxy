@@ -41,4 +41,17 @@ class DeviceReader : public InputDevice
     int fd;
 };
 
+class DeviceWriter : public OutputDevice
+{
+    public:
+    DeviceWriter(int fd) : fd(fd) {}
+
+    int Write(std::vector<char> buf)
+    {
+        return write(fd, &buf[0], buf.size());
+    }
+
+    private:
+    int fd;
+};
 

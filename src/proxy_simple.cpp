@@ -99,7 +99,7 @@ void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListener
     }
 }
 
-void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads)
+void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads, GuestListeners &guestListeners)
 {
     ServerSocket serverSocket(7999);
     socklen_t clientLength;
@@ -113,6 +113,11 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads)
         clientLength = sizeof(clientAddress);
         int newsockfd = serverSocket.Accept((struct sockaddr *) &clientAddress, &clientLength);
         printf("start server thread: in port %d, in address %x\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr);
+
+        // Register the new LAN socket as (the new) listening device for the LAN logical channel.
+        guestListeners.SetListener(LOGICAL_CHANNEL_LAN, new DeviceWriter(newsockfd));
+
+        // TODO: we have to handle the destruction of client sockets and their corresponding threads.
 
         // A new "LAN thread" is started: it is waiting for data from the LAN and forwards it to the LAN logical channel.
         allThreads.push_back(thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, logicalChannel), new DeviceReader(newsockfd)});
@@ -144,7 +149,7 @@ int main(int argc, const char *argv[])
     // The "GUEST thread" is receiving all hdlc frames and distributing them to the according guest listeners.
     allThreads.push_back(thread{GuestConnectorFromGuest, &pseudoDevice, &guestListeners});
 
-    LanServer(&pseudoDevice, allThreads);
+    LanServer(&pseudoDevice, allThreads, guestListeners);
 
     // We never get here -> no cleanup
     
