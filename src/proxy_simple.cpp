@@ -87,7 +87,7 @@ void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListener
                 }
                 else
                 {
-                    printf("GuestConnectorFromGuest: bytes written to socket: %d.\n", writtenBytes);
+                    printf("GuestConnectorFromGuest: bytes written to socket: %d. From logical channel: %d\n", writtenBytes, logicalChannel);
                 }
             }
         }
