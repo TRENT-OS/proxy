@@ -6,12 +6,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
 
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
+
+#include <vector>
 
 using namespace std;
 
@@ -73,6 +76,6 @@ class Socket : public InputDevice, public OutputDevice
 
     void error(const char *msg)
     {
-        fprintf(stderr,"msg\n");
+        fprintf(stderr, "%s\n", msg);
     }
 };
