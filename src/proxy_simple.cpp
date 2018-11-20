@@ -132,6 +132,11 @@ int main(int argc, const char *argv[])
     int port = SERVER_PORT;
     string hostName {SERVER_NAME};
 
+    if (argc > 2)
+    {
+        hostName = string{argv[2]};
+    }
+
     GuestListeners guestListeners{LOGICAL_CHANNEL_MAX};
     vector<thread> allThreads;
 
