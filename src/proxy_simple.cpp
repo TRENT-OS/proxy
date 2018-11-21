@@ -30,26 +30,33 @@ void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int lo
         return;
     }
 
-    while (true)
+    try
     {
-        readBytes = socket->Read(buffer);
-        if (readBytes > 0)
+        while (true)
         {
-            printf("GuestConnectorToGuest: bytes received from socket: %d.\n", readBytes);
-            fflush(stdout);
-            writtenBytes = guestConnector.Write(PARAM(logicalChannel, logicalChannel), readBytes, &buffer[0]);
-            writtenBytes = 0;
-
-            if (writtenBytes < 0)
+            readBytes = socket->Read(buffer);
+            if (readBytes > 0)
             {
-                printf("GuestConnectorToGuest: guest write failed.\n");
+                printf("GuestConnectorToGuest: bytes received from socket: %d.\n", readBytes);
                 fflush(stdout);
+                writtenBytes = guestConnector.Write(PARAM(logicalChannel, logicalChannel), readBytes, &buffer[0]);
+                writtenBytes = 0;
+
+                if (writtenBytes < 0)
+                {
+                    printf("GuestConnectorToGuest: guest write failed.\n");
+                    fflush(stdout);
+                }
+            }
+            else
+            {
+                //printf("GuestConnectorToGuest: socket read failed.\n");
             }
         }
-        else
-        {
-            //printf("GuestConnectorToGuest: socket read failed.\n");
-        }
+    }
+    catch (...)
+    {
+        printf("GuestConnectorToGuest exception\n");
     }
 }
 
@@ -68,34 +75,41 @@ void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListener
 
     printf("GuestConnectorFromGuest: s00.\n");
 
-    while (true)
+    try
     {
-        unsigned int logicalChannel;
-        buffer.resize(bufSize);
-        int readBytes = guestConnector.Read(buffer.size(), &buffer[0], &logicalChannel);
-        if (readBytes > 0)
+        while (true)
         {
-            //dumpFrame(&buffer[0], readBytes);
-            buffer.resize(readBytes);
-            OutputDevice *outputDevice = guestListeners->GetListener(logicalChannel);
-            if (outputDevice != nullptr)
+            unsigned int logicalChannel;
+            buffer.resize(bufSize);
+            int readBytes = guestConnector.Read(buffer.size(), &buffer[0], &logicalChannel);
+            if (readBytes > 0)
             {
-                writtenBytes = outputDevice->Write(buffer);
-                if (writtenBytes < 0)
+                //dumpFrame(&buffer[0], readBytes);
+                buffer.resize(readBytes);
+                OutputDevice *outputDevice = guestListeners->GetListener(logicalChannel);
+                if (outputDevice != nullptr)
                 {
-                    printf("GuestConnectorFromGuest: socket write failed; %s.\n", strerror(errno));
-                }
-                else
-                {
-                    printf("GuestConnectorFromGuest: bytes written to socket: %d. From logical channel: %d\n", writtenBytes, logicalChannel);
+                    writtenBytes = outputDevice->Write(buffer);
+                    if (writtenBytes < 0)
+                    {
+                        printf("GuestConnectorFromGuest: socket write failed; %s.\n", strerror(errno));
+                    }
+                    else
+                    {
+                        printf("GuestConnectorFromGuest: bytes written to socket: %d. From logical channel: %d\n", writtenBytes, logicalChannel);
+                    }
                 }
             }
+            else
+            {
+                // Not used because: not meaningful "Resource temporarily unavailable" 
+                //printf("GuestConnectorFromGuest: guest read failed.\n");
+            }
         }
-        else
-        {
-            // Not used because: not meaningful "Resource temporarily unavailable" 
-            //printf("GuestConnectorFromGuest: guest read failed.\n");
-        }
+    }
+    catch (...)
+    {
+        printf("GuestConnectorFromGuest exception\n");
     }
 }
 
@@ -108,19 +122,26 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads,
 
     serverSocket.Listen(5);
 
-    while (true)
+    try
     {
-        clientLength = sizeof(clientAddress);
-        int newsockfd = serverSocket.Accept((struct sockaddr *) &clientAddress, &clientLength);
-        printf("start server thread: in port %d, in address %x\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr);
+        while (true)
+        {
+            clientLength = sizeof(clientAddress);
+            int newsockfd = serverSocket.Accept((struct sockaddr *) &clientAddress, &clientLength);
+            printf("start server thread: in port %d, in address %x\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr);
 
-        // Register the new LAN socket as (the new) listening device for the LAN logical channel.
-        guestListeners.SetListener(LOGICAL_CHANNEL_LAN, new DeviceWriter(newsockfd));
+            // Register the new LAN socket as (the new) listening device for the LAN logical channel.
+            guestListeners.SetListener(LOGICAL_CHANNEL_LAN, new DeviceWriter(newsockfd));
 
-        // TODO: we have to handle the destruction of client sockets and their corresponding threads.
+            // TODO: we have to handle the destruction of client sockets and their corresponding threads.
 
-        // A new "LAN thread" is started: it is waiting for data from the LAN and forwards it to the LAN logical channel.
-        allThreads.push_back(thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, logicalChannel), new DeviceReader(newsockfd)});
+            // A new "LAN thread" is started: it is waiting for data from the LAN and forwards it to the LAN logical channel.
+            allThreads.push_back(thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, logicalChannel), new DeviceReader(newsockfd)});
+        }
+    }
+    catch (...)
+    {
+        printf("LanServer exception\n");
     }
 }
 
