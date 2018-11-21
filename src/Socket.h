@@ -71,6 +71,11 @@ class Socket : public InputDevice, public OutputDevice
         return write(sockfd, &buf[0], buf.size());
     }
 
+    int Close()
+    {
+        return close(sockfd);
+    }
+
     private:
     int sockfd;
 

@@ -50,7 +50,7 @@ void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int lo
             }
             else
             {
-                //printf("GuestConnectorToGuest: socket read failed.\n");
+                break;
             }
         }
     }
@@ -58,6 +58,8 @@ void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int lo
     {
         printf("GuestConnectorToGuest exception\n");
     }
+
+    socket->Close();
 }
 
 void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListeners *guestListeners)
@@ -132,8 +134,6 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads,
 
             // Register the new LAN socket as (the new) listening device for the LAN logical channel.
             guestListeners.SetListener(LOGICAL_CHANNEL_LAN, new DeviceWriter(newsockfd));
-
-            // TODO: we have to handle the destruction of client sockets and their corresponding threads.
 
             // A new "LAN thread" is started: it is waiting for data from the LAN and forwards it to the LAN logical channel.
             allThreads.push_back(thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, logicalChannel), new DeviceReader(newsockfd)});
