@@ -76,6 +76,11 @@ class Socket : public InputDevice, public OutputDevice
         return close(sockfd);
     }
 
+    int GetFileDescriptor() const
+    {
+        return sockfd;
+    }
+
     private:
     int sockfd;
 

@@ -50,6 +50,12 @@ void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int lo
             }
             else
             {
+                printf("GuestConnectorToGuest: closing client connection thread (file descriptor: %d).\n", socket->GetFileDescriptor());
+                if (logicalChannel == LOGICAL_CHANNEL_WAN)
+                {
+                    printf("GuestConnectorToGuest: the WAN socket was closed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                }
+
                 break;
             }
         }
@@ -130,7 +136,7 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads,
         {
             clientLength = sizeof(clientAddress);
             int newsockfd = serverSocket.Accept((struct sockaddr *) &clientAddress, &clientLength);
-            printf("start server thread: in port %d, in address %x\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr);
+            printf("start server thread: in port %d, in address %x (file descriptor: %x)\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr, newsockfd);
 
             // Register the new LAN socket as (the new) listening device for the LAN logical channel.
             guestListeners.SetListener(LOGICAL_CHANNEL_LAN, new DeviceWriter(newsockfd));

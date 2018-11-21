@@ -20,6 +20,7 @@ class InputDevice
     public:
     virtual int Read(std::vector<char> &buf) = 0;
     virtual int Close() = 0;
+    virtual int GetFileDescriptor() const = 0;
 };
 
 class OutputLogger : public OutputDevice
@@ -51,6 +52,11 @@ class DeviceReader : public InputDevice
     int Close()
     {
         return close(fd);
+    }
+
+    int GetFileDescriptor() const
+    {
+        return fd;
     }
 
     private:
