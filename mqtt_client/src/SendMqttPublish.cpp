@@ -18,7 +18,6 @@ int main(int argc, const char *argv[])
         hostName = string{argv[2]};
     }
 
-    Socket socket {port, hostName};
 
     vector<char> publish =
     {
@@ -30,15 +29,16 @@ int main(int argc, const char *argv[])
        0x69, 0x61, 0x6f
     };
 
-    //while (true)
+    while (true)
     {
+        Socket socket {port, hostName};
         int result = socket.Write(publish);
         if (result < 0)
         {
             fprintf(stderr,"Error: write to socket\n");
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
     return 0;
