@@ -35,3 +35,17 @@ target_include_directories(SendMqttPublish
     PRIVATE
         src
 )
+
+add_executable(MqttServer
+    mqtt_server/src/MqttServer.cpp
+)
+
+target_include_directories(MqttServer
+    PRIVATE
+        src
+        uart_socket/src
+        TinyFrame/demo
+)
+
+target_compile_options(MqttServer PRIVATE -pthread)
+target_link_libraries(MqttServer pthread)
