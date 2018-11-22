@@ -63,6 +63,6 @@ class ServerSocket
 
     void error(const char *msg)
     {
-        fprintf(stderr,"msg\n");
+        fprintf(stderr, "%s\n", msg);
     }
 };
