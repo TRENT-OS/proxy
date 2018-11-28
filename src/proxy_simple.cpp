@@ -5,85 +5,21 @@
 #include "IoDevices.h"
 #include "GuestListeners.h"
 #include "MqttCloud.h"
+#include "LogicalChannels.h"
+#include "SocketAdmin.h"
 #include "utils.h"
 
 #include <thread>
 
 using namespace std;
 
-enum LogicalChannels
-{
-    LOGICAL_CHANNEL_LAN = 0,
-    LOGICAL_CHANNEL_WAN = 1,
-    LOGICAL_CHANNEL_MAX
-};
-
-void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
-{
-    size_t bufSize = 256;
-    vector<char> buffer(bufSize);
-    int readBytes, writtenBytes;
-    GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
-
-    if (!guestConnector.IsOpen())
-    {
-        printf("GuestConnectorToGuest: pseudo device not open.\n");
-        return;
-    }
-
-    try
-    {
-        while (true)
-        {
-            readBytes = socket->Read(buffer);
-            if (readBytes > 0)
-            {
-                printf("GuestConnectorToGuest: bytes received from socket: %d.\n", readBytes);
-                fflush(stdout);
-                writtenBytes = guestConnector.Write(PARAM(logicalChannel, logicalChannel), readBytes, &buffer[0]);
-                writtenBytes = 0;
-
-                if (writtenBytes < 0)
-                {
-                    printf("GuestConnectorToGuest: guest write failed.\n");
-                    fflush(stdout);
-                }
-            }
-            else
-            {
-                printf("GuestConnectorToGuest: closing client connection thread (file descriptor: %d).\n", socket->GetFileDescriptor());
-                if (logicalChannel == LOGICAL_CHANNEL_WAN)
-                {
-                    printf("GuestConnectorToGuest: the WAN socket was closed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-                    socket->Close();
-                }
-
-                break;
-            }
-        }
-    }
-    catch (...)
-    {
-        printf("GuestConnectorToGuest exception\n");
-    }
-
-    socket->Close();
-}
-
-void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListeners *guestListeners)
+void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
 {
     size_t bufSize = 1024;
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
-    GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST);
 
-    if (!guestConnector.IsOpen())
-    {
-        printf("GuestConnectorFromGuest: pseudo device not open.\n");
-        return;
-    }
-
-    printf("GuestConnectorFromGuest: s00.\n");
+    printf("FromGuestThread: s00.\n");
 
     try
     {
@@ -91,22 +27,27 @@ void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListener
         {
             unsigned int logicalChannel;
             buffer.resize(bufSize);
-            int readBytes = guestConnector.Read(buffer.size(), &buffer[0], &logicalChannel);
+            int readBytes = guestConnector->Read(buffer.size(), &buffer[0], &logicalChannel);
+
+            // Check for control channel
+
+            // Check for correct channel (either lan or wan)
+
             if (readBytes > 0)
             {
                 //dumpFrame(&buffer[0], readBytes);
                 buffer.resize(readBytes);
-                OutputDevice *outputDevice = guestListeners->GetListener(logicalChannel);
+                OutputDevice *outputDevice = socketAdmin->GetSocket(logicalChannel);
                 if (outputDevice != nullptr)
                 {
                     writtenBytes = outputDevice->Write(buffer);
                     if (writtenBytes < 0)
                     {
-                        printf("GuestConnectorFromGuest: socket write failed; %s.\n", strerror(errno));
+                        printf("FromGuestThread: socket write failed; %s.\n", strerror(errno));
                     }
                     else
                     {
-                        printf("GuestConnectorFromGuest: bytes written to socket: %d. From logical channel: %d\n", writtenBytes, logicalChannel);
+                        printf("FromGuestThread: bytes written to socket: %d. From logical channel: %d\n", writtenBytes, logicalChannel);
                     }
                 }
             }
@@ -119,11 +60,11 @@ void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListener
     }
     catch (...)
     {
-        printf("GuestConnectorFromGuest exception\n");
+        printf("FromGuestThread exception\n");
     }
 }
 
-void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads, GuestListeners &guestListeners, unsigned int port)
+void LanServer(SocketAdmin *socketAdmin, unsigned int port)
 {
     ServerSocket serverSocket(port);
     socklen_t clientLength;
@@ -138,13 +79,25 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads,
         {
             clientLength = sizeof(clientAddress);
             int newsockfd = serverSocket.Accept((struct sockaddr *) &clientAddress, &clientLength);
-            printf("start server thread: in port %d, in address %x (file descriptor: %x)\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr, newsockfd);
 
+            if (socketAdmin->GetSocket(logicalChannel) == nullptr)
+            {
+                printf("LanServer: start server thread: in port %d, in address %x (file descriptor: %x)\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr, newsockfd);
+                socketAdmin->ActivateSocket(logicalChannel, new DeviceWriter{newsockfd}, new DeviceReader{newsockfd});
+            }
+            else
+            {
+                printf("LanServer: Error: do not start a new to-guest thread for LAN because such a thread is already active\n");
+                close(newsockfd);
+            }
+
+#if 0
             // Register the new LAN socket as (the new) listening device for the LAN logical channel.
             guestListeners.SetListener(LOGICAL_CHANNEL_LAN, new DeviceWriter(newsockfd));
 
             // A new "LAN thread" is started: it is waiting for data from the LAN and forwards it to the LAN logical channel.
             allThreads.push_back(thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, logicalChannel), new DeviceReader(newsockfd)});
+#endif
         }
     }
     catch (...)
@@ -155,34 +108,41 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads,
 
 int main(int argc, const char *argv[])
 {
-    int port = SERVER_PORT;
+    unsigned int port = SERVER_PORT;
     string hostName {SERVER_NAME};
+
+    if (argc < 2)
+    {
+        printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal [cloud_host_name]\n");
+        return 0;
+    }
+
+    string pseudoDeviceName{argv[1]};
+    SharedResource<string> pseudoDevice{&pseudoDeviceName};
+
+    GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
+    if (!guestConnector.IsOpen())
+    {
+        printf("Could not open pseudo device.\n");
+        return 0;
+    }
 
     if (argc > 2)
     {
         hostName = string{argv[2]};
     }
 
-    GuestListeners guestListeners{LOGICAL_CHANNEL_MAX};
-    vector<thread> allThreads;
+    SocketAdmin socketAdmin{&pseudoDevice, hostName, port};
 
-    string pseudoDeviceName{argv[1]};
-    SharedResource<string> pseudoDevice{pseudoDeviceName};
+    // The "GUEST thread" is:
+    // a) receiving all hdlc frames and distributing them to the sockets
+    // b) handling the socket admin commands from the guest
+    auto fromGuestThread{thread{FromGuestThread, &guestConnector, &socketAdmin}};
 
-    Socket wanSocket {port, hostName};
-
-    // Register the WAN socket as listening device for the WAN logical channel.
-    guestListeners.SetListener(LOGICAL_CHANNEL_WAN, &wanSocket);
-
-    // The "WAN thread": is waiting for data from the WAN and forwards it to the WAN logical channel.
-    allThreads.push_back(thread{GuestConnectorToGuest, &pseudoDevice, PARAM(logicalChannel, LOGICAL_CHANNEL_WAN), &wanSocket});
-
-    // The "GUEST thread" is receiving all hdlc frames and distributing them to the according guest listeners.
-    allThreads.push_back(thread{GuestConnectorFromGuest, &pseudoDevice, &guestListeners});
-
-    LanServer(&pseudoDevice, allThreads, guestListeners, SERVER_PORT);
+    // Handle the LAN socket
+    LanServer(&socketAdmin, SERVER_PORT);
 
     // We never get here -> no cleanup
-    
+
     return 0;
 }

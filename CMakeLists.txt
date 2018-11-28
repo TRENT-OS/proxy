@@ -8,6 +8,7 @@ add_executable(${PROJECT_NAME}
     TinyFrame/demo/utils.c
     TinyFrame/TinyFrame.c
     src/proxy_simple.cpp
+    src/SocketAdmin.cpp
 )
 
 

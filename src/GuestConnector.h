@@ -4,6 +4,7 @@
 #include "type.h"
 #include "uart_io_host.h"
 #include "uart_hdlc.h"
+#include "SharedResource.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,21 +24,6 @@ using namespace std;
     have to be synchronized.
 */
 
-template <typename T>
-class SharedResource
-{
-    public:
-    SharedResource(T value) : value(value) {}
-
-    void Lock() const { lock.lock(); }
-    void UnLock() const { lock.unlock(); }
-    T GetResource() const { return value; }
-
-    private:
-    T value;
-    mutable std::mutex lock;
-};
-
 class GuestConnector
 {
     public:
@@ -50,24 +36,28 @@ class GuestConnector
     GuestConnector(SharedResource<string> *pseudoDevice, GuestDirection guestDirection)
         : pseudoDevice(pseudoDevice)
     {
+        pseudoDevice->Lock();
+
         if (guestDirection == FROM_GUEST)
         {
             UartIoHostInit(
                 &uartIoHost, 
-                pseudoDevice->GetResource().c_str(),
+                pseudoDevice->GetResource()->c_str(),
                 UART_IO_HOST_FLAG_NONBLOCKING | UART_IO_HOST_FLAG_READ_ONLY);
         }
         else
         {
             UartIoHostInit(
                 &uartIoHost, 
-                pseudoDevice->GetResource().c_str(),
+                pseudoDevice->GetResource()->c_str(),
                 UART_IO_HOST_FLAG_WRITE_ONLY);
         }
 
         UartHdlcInit(&uartHdlc, &uartIoHost.implementation);
 
         isOpen = Open() >= 0;
+
+        pseudoDevice->UnLock();
     }
 
     ~GuestConnector() 
