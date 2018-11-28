@@ -55,6 +55,7 @@ void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int lo
                 if (logicalChannel == LOGICAL_CHANNEL_WAN)
                 {
                     printf("GuestConnectorToGuest: the WAN socket was closed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                    socket->Close();
                 }
 
                 break;
