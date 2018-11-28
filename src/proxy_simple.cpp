@@ -4,6 +4,7 @@
 #include "ServerSocket.h"
 #include "IoDevices.h"
 #include "GuestListeners.h"
+#include "MqttCloud.h"
 #include "utils.h"
 
 #include <thread>
@@ -121,9 +122,9 @@ void GuestConnectorFromGuest(SharedResource<string> *pseudoDevice, GuestListener
     }
 }
 
-void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads, GuestListeners &guestListeners)
+void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads, GuestListeners &guestListeners, unsigned int port)
 {
-    ServerSocket serverSocket(7999);
+    ServerSocket serverSocket(port);
     socklen_t clientLength;
     struct sockaddr_in clientAddress;
     unsigned int logicalChannel = LOGICAL_CHANNEL_LAN;
@@ -150,9 +151,6 @@ void LanServer(SharedResource<string> *pseudoDevice, vector<thread> &allThreads,
         printf("LanServer exception\n");
     }
 }
-
-#define SERVER_PORT 8883
-#define SERVER_NAME "HAR-test-HUB.azure-devices.net"
 
 int main(int argc, const char *argv[])
 {
@@ -181,7 +179,7 @@ int main(int argc, const char *argv[])
     // The "GUEST thread" is receiving all hdlc frames and distributing them to the according guest listeners.
     allThreads.push_back(thread{GuestConnectorFromGuest, &pseudoDevice, &guestListeners});
 
-    LanServer(&pseudoDevice, allThreads, guestListeners);
+    LanServer(&pseudoDevice, allThreads, guestListeners, SERVER_PORT);
 
     // We never get here -> no cleanup
     

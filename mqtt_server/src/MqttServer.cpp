@@ -2,13 +2,12 @@
 #include "Socket.h"
 #include "ServerSocket.h"
 #include "IoDevices.h"
+#include "MqttCloud.h"
 #include "utils.h"
 
 #include <thread>
 
 using namespace std;
-
-#define SERVER_PORT 8883
 
 void MqttServerThread(int socketFd)
 {

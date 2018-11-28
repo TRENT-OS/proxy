@@ -1,12 +1,11 @@
 
 #include "Socket.h"
+#include "MqttCloud.h"
 
 #include <chrono>
 #include <thread>
 
 using namespace std;
-
-#define SERVER_PORT 7999
 
 int main(int argc, const char *argv[])
 {
