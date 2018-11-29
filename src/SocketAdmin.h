@@ -11,7 +11,7 @@ using namespace std;
 class SocketAdmin
 {
     public:
-    SocketAdmin(SharedResource<string> *pseudoDevice, string wanHostName, unsigned int wanPort) :
+    SocketAdmin(SharedResource<string> *pseudoDevice, string wanHostName, int wanPort) :
         wanPort{wanPort},
         wanHostName{wanHostName},
         pseudoDevice{pseudoDevice},
@@ -20,15 +20,15 @@ class SocketAdmin
     {
     }
 
-    int ActivateSocket(unsigned int logicalChannel, OutputDevice *outputDevice, InputDevice *inputDevice);
+    int ActivateSocket(unsigned int logicalChannel, OutputDevice *outputDevice , InputDevice *inputDevice);
     int DeactivateSocket(unsigned int logicalChannel);
     OutputDevice *GetSocket(unsigned int logicalChannel) const;
-    SharedResource<string> *GetPseudoDevice() const { return pseudoDevice; }
 
     private:
-    unsigned int wanPort;
+    int wanPort;
     string wanHostName;
     SharedResource<string> *pseudoDevice;
+    Socket *wanSocket;
 
     GuestListeners guestListeners;
     vector<thread> toGuestThreads;
