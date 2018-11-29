@@ -91,7 +91,13 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
         return -1;
     }
 
-    // Check that logical channel is free
+    // In case of LAN: do nothing and return with success
+    if (logicalChannel == LOGICAL_CHANNEL_LAN)
+    {
+        return 0;
+    }
+
+    // In case the logical channel is not free: fail
     if (guestListeners.GetListener(logicalChannel) != nullptr)
     {
         return -1;
@@ -117,7 +123,13 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel)
         return -1;
     }
 
-    // Check that logical channel is not free
+    // In case of LAN: do nothing and return with success
+    if (logicalChannel == LOGICAL_CHANNEL_LAN)
+    {
+        return 0;
+    }
+
+    // Return with success in case the logical channel is free (= nothing to do)
     if (guestListeners.GetListener(logicalChannel) == nullptr)
     {
         return 0;
