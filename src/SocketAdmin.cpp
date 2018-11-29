@@ -14,7 +14,7 @@
 
 using namespace std;
 
-void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
+void ToGuestThread(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
     size_t bufSize = 256;
     vector<char> buffer(bufSize);
@@ -23,7 +23,7 @@ void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int lo
 
     if (!guestConnector.IsOpen())
     {
-        printf("GuestConnectorToGuest: pseudo device not open.\n");
+        printf("ToGuestThread: pseudo device not open.\n");
         return;
     }
 
@@ -34,23 +34,23 @@ void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int lo
             readBytes = socket->Read(buffer);
             if (readBytes > 0)
             {
-                printf("GuestConnectorToGuest: bytes received from socket: %d.\n", readBytes);
+                printf("ToGuestThread: bytes received from socket: %d.\n", readBytes);
                 fflush(stdout);
                 writtenBytes = guestConnector.Write(PARAM(logicalChannel, logicalChannel), readBytes, &buffer[0]);
                 writtenBytes = 0;
 
                 if (writtenBytes < 0)
                 {
-                    printf("GuestConnectorToGuest: guest write failed.\n");
+                    printf("ToGuestThread: guest write failed.\n");
                     fflush(stdout);
                 }
             }
             else
             {
-                printf("GuestConnectorToGuest: closing client connection thread (file descriptor: %d).\n", socket->GetFileDescriptor());
+                printf("ToGuestThread: closing client connection thread (file descriptor: %d).\n", socket->GetFileDescriptor());
                 if (logicalChannel == LOGICAL_CHANNEL_WAN)
                 {
-                    printf("GuestConnectorToGuest: the WAN socket was closed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+                    printf("ToGuestThread: the WAN socket was closed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
                     socket->Close();
                 }
 
@@ -60,28 +60,11 @@ void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int lo
     }
     catch (...)
     {
-        printf("GuestConnectorToGuest exception\n");
+        printf("ToGuestThread exception\n");
     }
 
     socket->Close();
 }
-
-#if 0
-    SharedResource<string> pseudoDevice{pseudoDeviceName};
-
-    Socket wanSocket {port, hostName};
-
-    // Register the WAN socket as listening device for the WAN logical channel.
-    guestListeners.SetListener(LOGICAL_CHANNEL_WAN, &wanSocket);
-
-    // The "WAN thread": is waiting for data from the WAN and forwards it to the WAN logical channel.
-    allThreads.push_back(thread{GuestConnectorToGuest, &pseudoDevice, PARAM(logicalChannel, LOGICAL_CHANNEL_WAN), &wanSocket});
-
-    // The "GUEST thread" is receiving all hdlc frames and distributing them to the according guest listeners.
-    allThreads.push_back(thread{GuestConnectorFromGuest, &pseudoDevice, &guestListeners});
-
-    LanServer(&pseudoDevice, allThreads, guestListeners, SERVER_PORT);
-#endif
 
 int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outputDevice, InputDevice *inputDevice) 
 {
@@ -107,8 +90,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
     guestListeners.SetListener(logicalChannel, outputDevice);
 
     // Create thread
-    toGuestThreads[logicalChannel] = thread{GuestConnectorToGuest, pseudoDevice, PARAM(logicalChannel, LOGICAL_CHANNEL_WAN), inputDevice};
-//void GuestConnectorToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
+    toGuestThreads[logicalChannel] = thread{ToGuestThread, pseudoDevice, PARAM(logicalChannel, LOGICAL_CHANNEL_WAN), inputDevice};
 
     // Return success indication
     return 0;
