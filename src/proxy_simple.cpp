@@ -5,21 +5,13 @@
 #include "IoDevices.h"
 #include "GuestListeners.h"
 #include "MqttCloud.h"
-#include "LogicalChannels.h"
+#include "uart_socket_guest_rpc_conventions.h"
 #include "SocketAdmin.h"
 #include "utils.h"
 
 #include <thread>
 
 using namespace std;
-
-typedef enum
-{
-    UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN,
-    UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN_CNF,
-    UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE,
-    UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE_CNF
-} UartSocketGuestSocketCommand;
 
 void SendDataToSocket(unsigned int logicalChannel, OutputDevice *outputDevice, vector<char> &buffer)
 {
@@ -54,7 +46,10 @@ void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command
 
     response[1] = result;
 
-    SendDataToSocket(LOGICAL_CHANNEL_CONTROL, socketAdmin->GetSocket(LOGICAL_CHANNEL_CONTROL), response);
+    SendDataToSocket(
+        UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL,
+        socketAdmin->GetSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL),
+        response);
 }
 
 void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
@@ -64,23 +59,23 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
     int result;
 
     printf("Handle socket command: cmd:%d channel:%d", command, commandLogicalChannel);
-    if (commandLogicalChannel == LOGICAL_CHANNEL_LAN)
+    if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
     {
         result = 0; // We do not allow the guest to handle the LAN socket -> fake success results
     }
-    else if (commandLogicalChannel == LOGICAL_CHANNEL_CONTROL)
+    else if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
     {
         result = -1; // We do not allow the guest to handle the control channel -> return a failure
     }
-    else if (commandLogicalChannel == LOGICAL_CHANNEL_WAN)
+    else if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
     {
         if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
         {
-            result = socketAdmin->ActivateSocket(LOGICAL_CHANNEL_WAN, nullptr, nullptr);
+            result = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN, nullptr, nullptr);
         }
         else
         {
-            result = socketAdmin->DeactivateSocket(LOGICAL_CHANNEL_WAN);
+            result = socketAdmin->DeactivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
         }
     }
 
@@ -110,7 +105,7 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
                 //dumpFrame(&buffer[0], readBytes);
                 buffer.resize(readBytes);
 
-                if (logicalChannel == LOGICAL_CHANNEL_CONTROL)
+                if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
                 {
                     if (readBytes != 2)
                     {
@@ -147,7 +142,7 @@ void LanServer(SocketAdmin *socketAdmin, unsigned int port)
     ServerSocket serverSocket(port);
     socklen_t clientLength;
     struct sockaddr_in clientAddress;
-    unsigned int logicalChannel = LOGICAL_CHANNEL_LAN;
+    unsigned int logicalChannel = UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN;
 
     serverSocket.Listen(5);
 
@@ -209,7 +204,7 @@ int main(int argc, const char *argv[])
     SocketAdmin socketAdmin{&pseudoDevice, hostName, port};
 
     // Activate the control channel socket.
-    socketAdmin.ActivateSocket(LOGICAL_CHANNEL_CONTROL, &controlChannelSocket, &controlChannelSocket);
+    socketAdmin.ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL, &controlChannelSocket, &controlChannelSocket);
 
     // The "GUEST thread" is:
     // a) receiving all hdlc frames and distributing them to the sockets

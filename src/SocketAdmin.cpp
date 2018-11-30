@@ -5,7 +5,7 @@
 #include "SharedResource.h"
 #include "IoDevices.h"
 #include "GuestListeners.h"
-#include "LogicalChannels.h"
+#include "uart_socket_guest_rpc_conventions.h"
 #include "MqttCloud.h"
 #include "SocketAdmin.h"
 #include "utils.h"
@@ -48,7 +48,7 @@ void ToGuestThread(SharedResource<string> *pseudoDevice, unsigned int logicalCha
             else
             {
                 printf("ToGuestThread[%1d]: closing client connection thread (file descriptor: %d).\n", logicalChannel, socket->GetFileDescriptor());
-                if (logicalChannel == LOGICAL_CHANNEL_WAN)
+                if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
                 {
                     printf("ToGuestThread[%1d]: the WAN socket was closed !!!!!\n", logicalChannel);
                     socket->Close();
@@ -75,7 +75,7 @@ void ToGuestThread(SharedResource<string> *pseudoDevice, unsigned int logicalCha
 int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outputDevice, InputDevice *inputDevice) 
 {
     // Check the logical channel is valid
-    if (logicalChannel >= LOGICAL_CHANNEL_MAX)
+    if (logicalChannel >= UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
         return -1;
     }
@@ -87,7 +87,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
     }
 
     // In case of WAN: create the real socket
-    if (logicalChannel == LOGICAL_CHANNEL_WAN)
+    if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
     {
         wanSocket = new Socket{wanPort, wanHostName};
         outputDevice = wanSocket;
@@ -109,7 +109,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
 int SocketAdmin::DeactivateSocket(unsigned int logicalChannel) 
 {
     // Currently only WLAN is supported
-    if (logicalChannel != LOGICAL_CHANNEL_WAN)
+    if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
     {
         return -1;
     }

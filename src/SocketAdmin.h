@@ -15,8 +15,8 @@ class SocketAdmin
         wanPort{wanPort},
         wanHostName{wanHostName},
         pseudoDevice{pseudoDevice},
-        guestListeners{LOGICAL_CHANNEL_MAX},
-        toGuestThreads{LOGICAL_CHANNEL_MAX}
+        guestListeners{UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX},
+        toGuestThreads{UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX}
     {
     }
 
