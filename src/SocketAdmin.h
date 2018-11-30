@@ -27,7 +27,7 @@ class SocketAdmin
     }
 
     int ActivateSocket(unsigned int logicalChannel, OutputDevice *outputDevice , InputDevice *inputDevice);
-    int DeactivateSocket(unsigned int logicalChannel);
+    int DeactivateSocket(unsigned int logicalChannel, bool unsolicited);
     OutputDevice *GetSocket(unsigned int logicalChannel) const;
     void SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer);
     SharedResource<string> *GetPseudoDevice() const { return pseudoDevice; }

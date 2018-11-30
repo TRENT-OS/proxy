@@ -92,7 +92,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
         }
         else
         {
-            result = socketAdmin->DeactivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
+            result = socketAdmin->DeactivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN, false);
         }
     }
 

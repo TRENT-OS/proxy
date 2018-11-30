@@ -18,6 +18,8 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
         return;
     }
 
+    printf("ToGuestThread[%1d]: starting...\n", logicalChannel);
+
     try
     {
         while (true)
@@ -66,8 +68,11 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 
     if (socketAdmin->GetSocket(logicalChannel) != nullptr)
     {
-        socketAdmin->DeactivateSocket(logicalChannel);
+        printf("ToGuestThread[%1d]: deactivating the socket\n", logicalChannel);
+        socketAdmin->DeactivateSocket(logicalChannel, true);
     }
+
+    printf("ToGuestThread[%1d]: completed\n", logicalChannel);
 }
 
 // Possible contexts how to get here:
@@ -83,6 +88,16 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
         return -1;
     }
 
+    // Check valid arguments
+    if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+    {
+        if ((outputDevice == nullptr) || (inputDevice == nullptr))
+        {
+            printf("ActivateSocket: bad input args\n");
+            return -1;
+        }
+    }
+
     int result = -1;
 
     lock.lock();
@@ -94,6 +109,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
         {
             //wanSocket = new Socket{wanPort, wanHostName};
             wanSocket = new Socket{wanPort, "127.0.0.1"};
+            printf("ActivateSocket: create WAN socket: %s:%d\n", "127.0.0.1", wanPort);
 
             // We set a timeout on the WAN socket: the thread will unblock on a regular basis and detect
             // if the socket is not existing any more - because it was closed by the from guest thread
@@ -126,7 +142,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
 // Possible contexts how to get here:
 // - from guest thread: wants to deactivate the WAN socket
 // - to guest threads (LAN, WAN, control channel): at the end of their life time
-int SocketAdmin::DeactivateSocket(unsigned int logicalChannel) 
+int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited) 
 {
     int result = 0;
 
@@ -139,22 +155,33 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel)
 
         if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
         {
-            // Note: if we were called from the from guest thread: 
-            // Try not to communicate with the thread: try to close the socket and hope in the thread the read will fail and the thread closes itself
-            wanSocket->Close();
+            if (unsolicited == false)
+            {
+                wanSocket->Close();
+            }
+
             delete wanSocket;
         }
         else
         {
-            OutputDevice *outputDevice = GetSocket(logicalChannel);
-            outputDevice->Close();
+            if (unsolicited == false)
+            {
+                OutputDevice *outputDevice = GetSocket(logicalChannel);
+                outputDevice->Close();
+            }
         }
 
         guestListeners.SetListener(logicalChannel, nullptr);
 
         // Wait unitl the according to guest thread has run to completion.
-        toGuestThreads[logicalChannel].join();
-
+        if (unsolicited == false)
+        {
+            toGuestThreads[logicalChannel].join();
+        }
+        else
+        {
+            toGuestThreads[logicalChannel].detach();
+        }
     }
 
     lock.unlock();
@@ -182,11 +209,11 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
         writtenBytes = outputDevice->Write(buffer);
         if (writtenBytes < 0)
         {
-            printf("logical channe: %d - socket write failed; %s.\n", logicalChannel, strerror(errno));
+            printf("logical channel: %d - socket write failed; %s.\n", logicalChannel, strerror(errno));
         }
         else
         {
-            printf("logical channe: %d - bytes written to socket: %d.\n", logicalChannel, writtenBytes);
+            printf("logical channel: %d - bytes written to socket: %d.\n", logicalChannel, writtenBytes);
         }
     }
 
