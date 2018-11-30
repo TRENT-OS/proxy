@@ -13,24 +13,6 @@
 
 using namespace std;
 
-void SendDataToSocket(unsigned int logicalChannel, OutputDevice *outputDevice, vector<char> &buffer)
-{
-    int writtenBytes;
-
-    if (outputDevice != nullptr)
-    {
-        writtenBytes = outputDevice->Write(buffer);
-        if (writtenBytes < 0)
-        {
-            printf("FromGuestThread: socket write failed; %s.\n", strerror(errno));
-        }
-        else
-        {
-            printf("FromGuestThread: bytes written to socket: %d. From logical channel: %d\n", writtenBytes, logicalChannel);
-        }
-    }
-}
-
 void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command, unsigned int result)
 {
     vector<char> response{2};
@@ -46,9 +28,8 @@ void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command
 
     response[1] = result;
 
-    SendDataToSocket(
+    socketAdmin->SendDataToSocket(
         UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL,
-        socketAdmin->GetSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL),
         response);
 }
 
@@ -120,8 +101,7 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
                 else
                 {
                     // For LAN, WAN: write the received data to the according socket
-                    OutputDevice *outputDevice = socketAdmin->GetSocket(logicalChannel);
-                    SendDataToSocket(logicalChannel, outputDevice, buffer);
+                    socketAdmin->SendDataToSocket(logicalChannel, buffer);
                 }
             }
             else

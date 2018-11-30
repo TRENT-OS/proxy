@@ -23,6 +23,7 @@ class SocketAdmin
     int ActivateSocket(unsigned int logicalChannel, OutputDevice *outputDevice , InputDevice *inputDevice);
     int DeactivateSocket(unsigned int logicalChannel);
     OutputDevice *GetSocket(unsigned int logicalChannel) const;
+    void SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer);
 
     private:
     int wanPort;

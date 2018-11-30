@@ -66,6 +66,8 @@ void ToGuestThread(SharedResource<string> *pseudoDevice, unsigned int logicalCha
     printf("ToGuestThread[%1d]: closing socket\n", logicalChannel);
 
     socket->Close();
+
+    // LAN: closing of thread: needs to indicate in socket admin that LAN channel is not active (for LAN server).
 }
 
 // Possible contexts how to get here:
@@ -140,3 +142,23 @@ OutputDevice *SocketAdmin::GetSocket(unsigned int logicalChannel) const
     // Use GuestListeners to map logical channel to socket.
     return guestListeners.GetListener(logicalChannel);
 }
+
+void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer)
+{
+    int writtenBytes;
+    OutputDevice *outputDevice = GetSocket(logicalChannel);
+
+    if (outputDevice != nullptr)
+    {
+        writtenBytes = outputDevice->Write(buffer);
+        if (writtenBytes < 0)
+        {
+            printf("logical channe: %d - socket write failed; %s.\n", logicalChannel, strerror(errno));
+        }
+        else
+        {
+            printf("logical channe: %d - bytes written to socket: %d.\n", logicalChannel, writtenBytes);
+        }
+    }
+}
+
