@@ -80,7 +80,7 @@ class GuestConnector
         return result;
     } 
 
-    int Write(unsigned int logicalChannel, unsigned int length, char *buf) 
+    int Write(unsigned int logicalChannel, unsigned int length, const char *buf) 
     { 
         int result;
 
