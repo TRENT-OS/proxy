@@ -2,7 +2,6 @@
 #include "SocketAdmin.h"
 
 #include "GuestConnector.h"
-#include "uart_socket_guest_rpc_conventions.h"
 #include "MqttCloud.h"
 #include "utils.h"
 
@@ -39,7 +38,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
             }
             else
             {
-                printf("ToGuestThread[%1d]: closing client connection thread (file descriptor: %d).\n", logicalChannel, socket->GetFileDescriptor());
+                printf("ToGuestThread[%1d]: closing client connection thread.\n", logicalChannel);
 
                 break;
             }
@@ -65,7 +64,10 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
         printf("ToGuestThread[%1d]: closing the current LAN client connection\n", logicalChannel);
     }
 
-    socketAdmin->DeactivateSocket(logicalChannel);
+    if (socketAdmin->GetSocket(logicalChannel) != nullptr)
+    {
+        socketAdmin->DeactivateSocket(logicalChannel);
+    }
 }
 
 // Possible contexts how to get here:
@@ -77,6 +79,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
     // Check the logical channel is valid
     if (logicalChannel >= UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
+        printf("ActivateSocket: %d\n", -1);
         return -1;
     }
 
@@ -89,7 +92,17 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
         // In case of WAN: create the real socket
         if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
         {
-            wanSocket = new Socket{wanPort, wanHostName};
+            //wanSocket = new Socket{wanPort, wanHostName};
+            wanSocket = new Socket{wanPort, "127.0.0.1"};
+
+            // We set a timeout on the WAN socket: the thread will unblock on a regular basis and detect
+            // if the socket is not existing any more - because it was closed by the from guest thread
+            // on behalf of the guest - and run to completion.
+            struct timeval tv;
+            tv.tv_sec = 1;
+            tv.tv_usec = 0;
+            setsockopt(wanSocket->GetFileDescriptor(), SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
+
             outputDevice = wanSocket;
             inputDevice = wanSocket;
         }
@@ -105,6 +118,8 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
 
     lock.unlock();
 
+    printf("ActivateSocket: %d\n", result);
+
     return result;
 }
 
@@ -119,11 +134,10 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel)
 
     if (guestListeners.GetListener(logicalChannel) != nullptr)
     {
-        guestListeners.SetListener(logicalChannel, nullptr);
 
         // Initial implementation: do not sync with WAN thread destruction and always indicate success - has to be tested
 
-        if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+        if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
         {
             // Note: if we were called from the from guest thread: 
             // Try not to communicate with the thread: try to close the socket and hope in the thread the read will fail and the thread closes itself
@@ -135,9 +149,17 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel)
             OutputDevice *outputDevice = GetSocket(logicalChannel);
             outputDevice->Close();
         }
+
+        guestListeners.SetListener(logicalChannel, nullptr);
+
+        // Wait unitl the according to guest thread has run to completion.
+        toGuestThreads[logicalChannel].join();
+
     }
 
     lock.unlock();
+
+    printf("DeactivateSocket: %d\n", result);
 
     return result;
 }

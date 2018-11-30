@@ -20,6 +20,7 @@ class SocketAdmin
         wanPort{wanPort},
         wanHostName{wanHostName},
         pseudoDevice{pseudoDevice},
+        wanSocket(nullptr),
         guestListeners{UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX},
         toGuestThreads{UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX}
     {
@@ -29,6 +30,7 @@ class SocketAdmin
     int DeactivateSocket(unsigned int logicalChannel);
     OutputDevice *GetSocket(unsigned int logicalChannel) const;
     void SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer);
+    SharedResource<string> *GetPseudoDevice() const { return pseudoDevice; }
 
     private:
     int wanPort;

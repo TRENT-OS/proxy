@@ -12,9 +12,36 @@
 
 using namespace std;
 
+void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, const vector<char> &buffer)
+{
+    int writtenBytes;
+    GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
+
+    if (!guestConnector.IsOpen())
+    {
+        printf("WriteToGuest[%1d]: pseudo device not open.\n", logicalChannel);
+        return;
+    }
+
+    try
+    {
+        writtenBytes = guestConnector.Write(PARAM(logicalChannel, logicalChannel), buffer.size(), &buffer[0]);
+        if (writtenBytes < 0)
+        {
+            printf("WriteToGuest[%1d]: guest write failed.\n", logicalChannel);
+        }
+    }
+    catch (...)
+    {
+        printf("WriteToGuest[%1d] exception\n", logicalChannel);
+    }
+
+    guestConnector.Close();
+}
+
 void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command, unsigned int result)
 {
-    vector<char> response{2};
+    vector<char> response(2);
 
     if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
     {
@@ -27,7 +54,10 @@ void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command
 
     response[1] = result;
 
-    socketAdmin->SendDataToSocket(
+    printf("Handle socket command response: cmd: %d result:%d\n", response[0], response[1]);
+
+    WriteToGuest(
+        socketAdmin->GetPseudoDevice(),
         UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL,
         response);
 }
@@ -44,7 +74,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
     unsigned int commandLogicalChannel = buffer[1];
     int result;
 
-    printf("Handle socket command: cmd:%d channel:%d", command, commandLogicalChannel);
+    printf("Handle socket command: cmd:%d channel:%d\n", command, commandLogicalChannel);
 
     if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
     {
@@ -66,7 +96,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
         }
     }
 
-    printf("Handle socket command: result:%d", result);
+    printf("Handle socket command: result:%d\n", result);
 
     SendResponse(socketAdmin, command, PARAM(result, result < 0 ? 1 : 0));
 }
@@ -176,14 +206,7 @@ int main(int argc, const char *argv[])
         hostName = string{argv[2]};
     }
 
-    // Create the socket for the logical control channel thread.
-    // The from guest thread will write the socket command confirms to this socket.
-    Socket controlChannelSocket{7999, "127.0.0.1"};
-
     SocketAdmin socketAdmin{&pseudoDevice, hostName, port};
-
-    // Activate the control channel socket.
-    socketAdmin.ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL, &controlChannelSocket, &controlChannelSocket);
 
     // The "GUEST thread" is:
     // a) receiving all hdlc frames and distributing them to the sockets
