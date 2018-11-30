@@ -54,11 +54,18 @@ void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command
 
 void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
 {
+    if (buffer.size() != 2)
+    {
+        printf("FromGuestThread: incoming socket command with wrong length.\n");
+        return;
+    }
+
     UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
     unsigned int commandLogicalChannel = buffer[1];
     int result;
 
     printf("Handle socket command: cmd:%d channel:%d", command, commandLogicalChannel);
+
     if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
     {
         result = 0; // We do not allow the guest to handle the LAN socket -> fake success results
@@ -107,15 +114,8 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
 
                 if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
                 {
-                    if (readBytes != 2)
-                    {
-                        printf("FromGuestThread: incoming socket command with wrong length.\n");
-                    }
-                    else
-                    {
-                        // Handle the commands arriving on the control channel
-                        HandleSocketCommand(socketAdmin, buffer);
-                    }
+                    // Handle the commands arriving on the control channel
+                    HandleSocketCommand(socketAdmin, buffer);
                 }
                 else
                 {
