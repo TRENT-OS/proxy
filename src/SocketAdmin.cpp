@@ -88,28 +88,32 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
         return -1;
     }
 
-    // In case the logical channel is not free: fail
-    if (guestListeners.GetListener(logicalChannel) != nullptr)
+    int result = -1;
+
+    lock.lock();
+
+    if (guestListeners.GetListener(logicalChannel) == nullptr)
     {
-        return -1;
+        // In case of WAN: create the real socket
+        if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+        {
+            wanSocket = new Socket{wanPort, wanHostName};
+            outputDevice = wanSocket;
+            inputDevice = wanSocket;
+        }
+
+        // Register socket in GuestListeners
+        guestListeners.SetListener(logicalChannel, outputDevice);
+
+        // Create thread
+        toGuestThreads[logicalChannel] = thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), inputDevice};
+
+        result = 0;
     }
 
-    // In case of WAN: create the real socket
-    if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
-    {
-        wanSocket = new Socket{wanPort, wanHostName};
-        outputDevice = wanSocket;
-        inputDevice = wanSocket;
-    }
+    lock.unlock();
 
-    // Register socket in GuestListeners
-    guestListeners.SetListener(logicalChannel, outputDevice);
-
-    // Create thread
-    toGuestThreads[logicalChannel] = thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), inputDevice};
-
-    // Return success indication
-    return 0;
+    return result;
 }
 
 // Possible contexts how to get here:
@@ -117,28 +121,33 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
 // - to guest threads (LAN, WAN, control channel): at the end of their life time
 int SocketAdmin::DeactivateSocket(unsigned int logicalChannel) 
 {
-    // Return with success in case the logical channel is free (= nothing to do)
-    if (guestListeners.GetListener(logicalChannel) == nullptr)
+    int result = 0;
+
+    lock.lock();
+
+    if (guestListeners.GetListener(logicalChannel) != nullptr)
     {
-        return 0;
+        guestListeners.SetListener(logicalChannel, nullptr);
+
+        // Initial implementation: do not sync with WAN thread destruction and always indicate success - has to be tested
+
+        if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+        {
+            // Note: if we were called from the from guest thread: 
+            // Try not to communicate with the thread: try to close the socket and hope in the thread the read will fail and the thread closes itself
+            wanSocket->Close();
+            delete wanSocket;
+        }
+        else
+        {
+            OutputDevice *outputDevice = GetSocket(logicalChannel);
+            outputDevice->Close();
+        }
     }
 
-    guestListeners.SetListener(logicalChannel, nullptr);
+    lock.unlock();
 
-    // Initial implementation: do not sync with WAN thread destruction and always indicate success - has to be tested
-
-    if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
-    {
-        // Note: if we were called from the from guest thread: 
-        // Try not to communicate with the thread: try to close the socket and hope in the thread the read will fail and the thread closes itself
-        wanSocket->Close();
-        delete wanSocket;
-    }
-    else
-    {
-        OutputDevice *outputDevice = GetSocket(logicalChannel);
-        outputDevice->Close();
-    }
+    return result;
 }
     
 OutputDevice *SocketAdmin::GetSocket(unsigned int logicalChannel) const
@@ -152,6 +161,8 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
     int writtenBytes;
     OutputDevice *outputDevice = GetSocket(logicalChannel);
 
+    lock.lock();
+    
     if (outputDevice != nullptr)
     {
         writtenBytes = outputDevice->Write(buffer);
@@ -164,5 +175,7 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
             printf("logical channe: %d - bytes written to socket: %d.\n", logicalChannel, writtenBytes);
         }
     }
+
+    lock.unlock();
 }
 

@@ -30,7 +30,7 @@ class SocketAdmin
     string wanHostName;
     SharedResource<string> *pseudoDevice;
     Socket *wanSocket;
-
     GuestListeners guestListeners;
     vector<thread> toGuestThreads;
+    mutable mutex lock;
 };
