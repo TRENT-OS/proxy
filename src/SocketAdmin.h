@@ -3,8 +3,13 @@
 
 #include "GuestListeners.h"
 #include "SharedResource.h"
+#include "Socket.h"
+#include "uart_socket_guest_rpc_conventions.h"
 
+
+#include <string>
 #include <thread>
+#include <mutex>
 
 using namespace std;
 

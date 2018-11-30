@@ -1,18 +1,10 @@
 
+#include "SocketAdmin.h"
+
 #include "GuestConnector.h"
-#include "Socket.h"
-#include "ServerSocket.h"
-#include "SharedResource.h"
-#include "IoDevices.h"
-#include "GuestListeners.h"
 #include "uart_socket_guest_rpc_conventions.h"
 #include "MqttCloud.h"
-#include "SocketAdmin.h"
 #include "utils.h"
-
-#include <thread>
-
-using namespace std;
 
 void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
@@ -162,7 +154,7 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
     OutputDevice *outputDevice = GetSocket(logicalChannel);
 
     lock.lock();
-    
+
     if (outputDevice != nullptr)
     {
         writtenBytes = outputDevice->Write(buffer);

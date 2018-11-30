@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include "IoDevices.h"
+
 #include <vector>
 #include <mutex>
 
