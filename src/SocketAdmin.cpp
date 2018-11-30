@@ -14,7 +14,7 @@
 
 using namespace std;
 
-void ToGuestThread(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
+void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
     size_t bufSize = 256;
     vector<char> buffer(bufSize);
@@ -48,11 +48,6 @@ void ToGuestThread(SharedResource<string> *pseudoDevice, unsigned int logicalCha
             else
             {
                 printf("ToGuestThread[%1d]: closing client connection thread (file descriptor: %d).\n", logicalChannel, socket->GetFileDescriptor());
-                if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
-                {
-                    printf("ToGuestThread[%1d]: the WAN socket was closed !!!!!\n", logicalChannel);
-                    socket->Close();
-                }
 
                 break;
             }
@@ -65,9 +60,20 @@ void ToGuestThread(SharedResource<string> *pseudoDevice, unsigned int logicalCha
 
     printf("ToGuestThread[%1d]: closing socket\n", logicalChannel);
 
-    socket->Close();
+    if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
+    {
+        printf("ToGuestThread[%1d]: Unexpected stop of control channel thread !!!!!\n", logicalChannel);
+    }
+    else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+    {
+        printf("ToGuestThread[%1d]: the WAN socket was closed !!!!!\n", logicalChannel);
+    }
+    else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
+    {
+        printf("ToGuestThread[%1d]: closing the current LAN client connection\n", logicalChannel);
+    }
 
-    // LAN: closing of thread: needs to indicate in socket admin that LAN channel is not active (for LAN server).
+    socketAdmin->DeactivateSocket(logicalChannel);
 }
 
 // Possible contexts how to get here:
@@ -100,7 +106,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
     guestListeners.SetListener(logicalChannel, outputDevice);
 
     // Create thread
-    toGuestThreads[logicalChannel] = thread{ToGuestThread, pseudoDevice, PARAM(logicalChannel, logicalChannel), inputDevice};
+    toGuestThreads[logicalChannel] = thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), inputDevice};
 
     // Return success indication
     return 0;
@@ -108,33 +114,31 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
 
 // Possible contexts how to get here:
 // - from guest thread: wants to deactivate the WAN socket
+// - to guest threads (LAN, WAN, control channel): at the end of their life time
 int SocketAdmin::DeactivateSocket(unsigned int logicalChannel) 
 {
-    // Currently only WLAN is supported
-    if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
-    {
-        return -1;
-    }
-
     // Return with success in case the logical channel is free (= nothing to do)
     if (guestListeners.GetListener(logicalChannel) == nullptr)
     {
         return 0;
     }
 
-    // Try not to communicate with the thread: try to close the socket and hope in the thread the read will fail and the thread closes itself
-
     guestListeners.SetListener(logicalChannel, nullptr);
-    wanSocket->Close();
-    delete wanSocket;
-    
-#if 0
-    // First version: do not sync with thread destruction and always indicate success
-* signal to-guest thread: "kill yourself"
-* wait for this operation to complete
-* get the success indication of the thread
-* reset the pointer in guestlisteners
-#endif
+
+    // Initial implementation: do not sync with WAN thread destruction and always indicate success - has to be tested
+
+    if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+    {
+        // Note: if we were called from the from guest thread: 
+        // Try not to communicate with the thread: try to close the socket and hope in the thread the read will fail and the thread closes itself
+        wanSocket->Close();
+        delete wanSocket;
+    }
+    else
+    {
+        OutputDevice *outputDevice = GetSocket(logicalChannel);
+        outputDevice->Close();
+    }
 }
     
 OutputDevice *SocketAdmin::GetSocket(unsigned int logicalChannel) const
