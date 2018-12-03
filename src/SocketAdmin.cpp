@@ -107,9 +107,9 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
         // In case of WAN: create the real socket
         if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
         {
-            //wanSocket = new Socket{wanPort, wanHostName};
-            wanSocket = new Socket{wanPort, "127.0.0.1"};
-            printf("ActivateSocket: create WAN socket: %s:%d\n", "127.0.0.1", wanPort);
+            wanSocket = new Socket{wanPort, wanHostName};
+            //wanSocket = new Socket{wanPort, "127.0.0.1"};
+            printf("ActivateSocket: create WAN socket: %s:%d\n", wanHostName.c_str(), wanPort);
 
             // We set a timeout on the WAN socket: the thread will unblock on a regular basis and detect
             // if the socket is not existing any more - because it was closed by the from guest thread
