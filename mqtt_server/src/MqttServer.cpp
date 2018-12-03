@@ -46,11 +46,11 @@ void MqttServerThread(int socketFd)
     close(socketFd);
 }
 
-void MqttServer()
+void MqttServer(int port)
 {
     vector<thread> allThreads;
 
-    ServerSocket serverSocket(SERVER_PORT);
+    ServerSocket serverSocket(port);
     socklen_t clientLength;
     struct sockaddr_in clientAddress;
 
@@ -76,7 +76,15 @@ void MqttServer()
 
 int main(int argc, const char *argv[])
 {
-    MqttServer();
+    int port = SERVER_PORT;
+    if (argc > 1)
+    {
+        port = atoi(argv[1]);
+    }
+
+    printf("Starting MQTT server on localhost - port: %d\n", port);
+
+    MqttServer(port);
 
     // We never get here -> no cleanup
     
