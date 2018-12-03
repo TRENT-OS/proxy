@@ -12,6 +12,27 @@
 
 using namespace std;
 
+string UartSocketCommand(UartSocketGuestSocketCommand command)
+{
+    switch (command)
+    {
+        case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN:
+        return ("Open");
+
+        case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN_CNF:
+        return ("OpenCnf");
+
+        case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE:
+        return ("Close");
+
+        case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE_CNF:
+        return ("CloseCnf");
+
+        default:
+        return ("Unknown");
+    }
+}
+
 void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, const vector<char> &buffer)
 {
     int writtenBytes;
@@ -54,7 +75,9 @@ void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command
 
     response[1] = result;
 
-    printf("Handle socket command response: cmd: %d result:%d\n", response[0], response[1]);
+    printf("Socket command response: cmd: %s result: %d\n",
+        UartSocketCommand(static_cast<UartSocketGuestSocketCommand>(response[0])).c_str(),
+        response[1]);
 
     WriteToGuest(
         socketAdmin->GetPseudoDevice(),
@@ -74,7 +97,9 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
     unsigned int commandLogicalChannel = buffer[1];
     int result;
 
-    printf("Handle socket command: cmd:%d channel:%d\n", command, commandLogicalChannel);
+    printf("Handle socket command: cmd: %s channel: %d\n",
+        UartSocketCommand(command).c_str(),
+        commandLogicalChannel);
 
     if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
     {
@@ -96,7 +121,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
         }
     }
 
-    printf("Handle socket command: result:%d\n", result);
+    // printf("Handle socket command: result:%d\n", result);
 
     SendResponse(socketAdmin, command, PARAM(result, result < 0 ? 1 : 0));
 }
