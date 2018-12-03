@@ -46,7 +46,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
                     break;
                 }
 
-                printf("Error %s.\n", strerror(errno));
+                // printf("Error %s.\n", strerror(errno));
             }
         }
     }
