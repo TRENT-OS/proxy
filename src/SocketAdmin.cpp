@@ -40,9 +40,13 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
             }
             else
             {
-                printf("ToGuestThread[%1d]: closing client connection thread.\n", logicalChannel);
+                if (readBytes == 0)
+                {
+                    printf("ToGuestThread[%1d]: closing client connection thread. Read result: %d\n", logicalChannel, readBytes);
+                    break;
+                }
 
-                break;
+                printf("Error %s.\n", strerror(errno));
             }
         }
     }
