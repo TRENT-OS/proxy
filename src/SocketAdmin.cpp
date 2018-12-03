@@ -25,6 +25,12 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
         while (true)
         {
             readBytes = socket->Read(buffer);
+
+            if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
+            {
+                break;
+            }
+
             if (readBytes > 0)
             {
                 printf("ToGuestThread[%1d]: bytes received from socket: %d.\n", logicalChannel, readBytes);
@@ -72,8 +78,14 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 
     if (socketAdmin->GetSocket(logicalChannel) != nullptr)
     {
-        printf("ToGuestThread[%1d]: deactivating the socket\n", logicalChannel);
-        socketAdmin->DeactivateSocket(logicalChannel, true);
+        bool unsolicited = true;
+        if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
+        {
+            unsolicited = false;
+        }
+
+        printf("ToGuestThread[%1d]: deactivating the socket; unsolicited: %s \n", logicalChannel, unsolicited ? "true" : "false");
+        socketAdmin->DeactivateSocket(logicalChannel, unsolicited);
     }
 
     printf("ToGuestThread[%1d]: completed\n", logicalChannel);
@@ -125,6 +137,8 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
 
             outputDevice = wanSocket;
             inputDevice = wanSocket;
+
+            closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
         }
 
         // Register socket in GuestListeners
@@ -180,7 +194,8 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
         // Wait unitl the according to guest thread has run to completion.
         if (unsolicited == false)
         {
-            toGuestThreads[logicalChannel].join();
+            //toGuestThreads[logicalChannel].join();
+            toGuestThreads[logicalChannel].detach();
         }
         else
         {
@@ -224,3 +239,26 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
     lock.unlock();
 }
 
+bool SocketAdmin::CloseWasRequested(unsigned int logicalChannel)
+{
+    if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+    {
+        return false;
+    }
+
+    lock.lock();
+    bool result = closeWasRequested[logicalChannel];
+    lock.unlock();
+
+    return result;
+}
+
+void SocketAdmin::RequestClose(unsigned int logicalChannel)
+{
+    if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+    {
+        lock.lock();
+        closeWasRequested[logicalChannel] = true;
+        lock.unlock();
+    }
+}

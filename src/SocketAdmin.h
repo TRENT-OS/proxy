@@ -22,7 +22,8 @@ class SocketAdmin
         pseudoDevice{pseudoDevice},
         wanSocket(nullptr),
         guestListeners{UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX},
-        toGuestThreads{UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX}
+        closeWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX),
+        toGuestThreads(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
     }
 
@@ -31,6 +32,8 @@ class SocketAdmin
     OutputDevice *GetSocket(unsigned int logicalChannel) const;
     void SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer);
     SharedResource<string> *GetPseudoDevice() const { return pseudoDevice; }
+    bool CloseWasRequested(unsigned int logicalChannel);
+    void RequestClose(unsigned int logicalChannel);
 
     private:
     int wanPort;
@@ -38,6 +41,7 @@ class SocketAdmin
     SharedResource<string> *pseudoDevice;
     Socket *wanSocket;
     GuestListeners guestListeners;
+    vector<bool> closeWasRequested;
     vector<thread> toGuestThreads;
     mutable mutex lock;
 };
