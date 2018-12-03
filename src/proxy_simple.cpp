@@ -146,9 +146,9 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
     }
 }
 
-void LanServer(SocketAdmin *socketAdmin, unsigned int port)
+void LanServer(SocketAdmin *socketAdmin, unsigned int lanPort)
 {
-    ServerSocket serverSocket(port);
+    ServerSocket serverSocket(lanPort);
     socklen_t clientLength;
     struct sockaddr_in clientAddress;
     unsigned int logicalChannel = UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN;
@@ -182,16 +182,38 @@ void LanServer(SocketAdmin *socketAdmin, unsigned int port)
 
 int main(int argc, const char *argv[])
 {
-    int port = SERVER_PORT;
-    string hostName {SERVER_NAME};
-
     if (argc < 2)
     {
-        printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal [cloud_host_name]\n");
+        printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal [lan port] [cloud_host_name] [cloud_port]\n");
         return 0;
     }
 
     string pseudoDeviceName{argv[1]};
+
+    int lanPort = SERVER_PORT;
+    if (argc > 2)
+    {
+        lanPort = atoi(argv[2]);
+    }
+
+    string hostName {SERVER_NAME};
+    if (argc > 3)
+    {
+        hostName = string{argv[3]};
+    }
+
+    int port = SERVER_PORT;
+    if (argc > 4)
+    {
+        port = atoi(argv[4]);
+    }
+
+    printf("Starting mqtt proxy on lan port: %d with pseudo device: %s using cloud host: %s port: %d\n", 
+        lanPort, 
+        pseudoDeviceName.c_str(),
+        hostName.c_str(), 
+        port);
+
     SharedResource<string> pseudoDevice{&pseudoDeviceName};
 
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
@@ -199,11 +221,6 @@ int main(int argc, const char *argv[])
     {
         printf("Could not open pseudo device.\n");
         return 0;
-    }
-
-    if (argc > 2)
-    {
-        hostName = string{argv[2]};
     }
 
     SocketAdmin socketAdmin{&pseudoDevice, hostName, port};
@@ -214,7 +231,7 @@ int main(int argc, const char *argv[])
     thread fromGuestThread{FromGuestThread, &guestConnector, &socketAdmin};
 
     // Handle the LAN socket
-    LanServer(&socketAdmin, SERVER_PORT);
+    LanServer(&socketAdmin, lanPort);
 
     // We never get here -> no cleanup
 
