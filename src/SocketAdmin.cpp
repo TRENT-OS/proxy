@@ -69,7 +69,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
     }
     else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
     {
-        printf("ToGuestThread[%1d]: the WAN socket was closed !!!!!\n", logicalChannel);
+        printf("ToGuestThread[%1d]: the WAN socket was closed\n", logicalChannel);
     }
     else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
     {
