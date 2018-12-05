@@ -9,14 +9,28 @@ using namespace std;
 
 int main(int argc, const char *argv[])
 {
-    int port = SERVER_PORT;
-    string hostName {"127.0.0.1"};
-
-    if (argc > 2)
+    if (argc < 2)
     {
-        hostName = string{argv[2]};
+        printf("Usage: SendMqttPublish host [port] [delay between publishes in seconds]\n");
+        return 0;
     }
 
+    string hostName {"127.0.0.1"};
+    hostName = string{argv[1]};
+
+    int port = 7999;
+    if (argc > 2)
+    {
+        port = atoi(argv[2]);
+    }
+
+    int delay = 10;
+    if (argc > 3)
+    {
+        delay = atoi(argv[3]);
+    }
+
+    printf("Publishing to host: %s port: %d with delay: %d", hostName.c_str(), port, delay);
 
     vector<char> publish =
     {
@@ -28,16 +42,30 @@ int main(int argc, const char *argv[])
        0x69, 0x61, 0x6f
     };
 
+    //printf("SendMqttPublish to port: make a pause before starting...\n");
+    //std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 15));
+
     while (true)
     {
         Socket socket {port, hostName};
+
+        //printf("SendMqttPublish: created socket - make a pause before writing...\n");
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 15));
+
         int result = socket.Write(publish);
         if (result < 0)
         {
             fprintf(stderr,"Error: write to socket\n");
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        //printf("SendMqttPublish: data written - make a pause before closing the socket...\n");
+        //std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 15));
+
+        socket.Close();
+
+        printf("SendMqttPublish: socket closed - make a pause before creating next socket...\n");
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000 * delay));
+
     }
 
     return 0;
