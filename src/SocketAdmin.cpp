@@ -26,14 +26,22 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
         {
             readBytes = socket->Read(buffer);
 
-            if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
+            if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
             {
-                break;
+                if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
+                {
+                    break;
+                }
             }
 
             if (readBytes > 0)
             {
                 printf("ToGuestThread[%1d]: bytes received from socket: %d.\n", logicalChannel, readBytes);
+                if (readBytes >= 2)
+                {
+                    printf("ToGuestThread[%1d]: first bytes: %02x %02x\n", logicalChannel, buffer[0], buffer[1]);
+                }
+
                 fflush(stdout);
                 writtenBytes = guestConnector.Write(PARAM(logicalChannel, logicalChannel), readBytes, &buffer[0]);
                 writtenBytes = 0;
@@ -79,9 +87,12 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
     if (socketAdmin->GetSocket(logicalChannel) != nullptr)
     {
         bool unsolicited = true;
-        if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
+        if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
         {
-            unsolicited = false;
+            if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
+            {
+                unsolicited = false;
+            }
         }
 
         printf("ToGuestThread[%1d]: deactivating the socket; unsolicited: %s \n", logicalChannel, unsolicited ? "true" : "false");
