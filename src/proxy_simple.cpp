@@ -5,6 +5,7 @@
 #include "Socket.h"
 #include "MqttCloud.h"
 #include "SocketAdmin.h"
+#include "LibDebug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
 
@@ -41,7 +42,7 @@ void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChan
 
     if (!guestConnector.IsOpen())
     {
-        printf("WriteToGuest[%1d]: pseudo device not open.\n", logicalChannel);
+        Debug_LOG_FATAL("WriteToGuest[%1d]: pseudo device not open.\n", logicalChannel);
         return;
     }
 
@@ -50,12 +51,12 @@ void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChan
         writtenBytes = guestConnector.Write(PARAM(logicalChannel, logicalChannel), buffer.size(), &buffer[0]);
         if (writtenBytes < 0)
         {
-            printf("WriteToGuest[%1d]: guest write failed.\n", logicalChannel);
+            Debug_LOG_ERROR("WriteToGuest[%1d]: guest write failed.\n", logicalChannel);
         }
     }
     catch (...)
     {
-        printf("WriteToGuest[%1d] exception\n", logicalChannel);
+        Debug_LOG_ERROR("WriteToGuest[%1d] exception\n", logicalChannel);
     }
 
     guestConnector.Close();
@@ -76,7 +77,7 @@ void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command
 
     response[1] = result;
 
-    printf("Socket command response: cmd: %s result: %d\n",
+    Debug_LOG_INFO("Socket command response: cmd: %s result: %d\n",
         UartSocketCommand(static_cast<UartSocketGuestSocketCommand>(response[0])).c_str(),
         response[1]);
 
@@ -90,7 +91,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
 {
     if (buffer.size() != 2)
     {
-        printf("FromGuestThread: incoming socket command with wrong length.\n");
+        Debug_LOG_ERROR("FromGuestThread: incoming socket command with wrong length.\n");
         return;
     }
 
@@ -98,7 +99,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
     unsigned int commandLogicalChannel = buffer[1];
     int result;
 
-    printf("Handle socket command: cmd: %s channel: %d\n",
+    Debug_LOG_INFO("Handle socket command: cmd: %s channel: %d\n",
         UartSocketCommand(command).c_str(),
         commandLogicalChannel);
 
@@ -125,7 +126,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
         }
     }
 
-    // printf("Handle socket command: result:%d\n", result);
+    // Debug_LOG_INFO("Handle socket command: result:%d\n", result);
 
     SendResponse(socketAdmin, command, PARAM(result, result < 0 ? 1 : 0));
 }
@@ -136,7 +137,7 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
 
-    printf("FromGuestThread: s00.\n");
+    Debug_LOG_INFO("FromGuestThread: starting.\n");
 
     try
     {
@@ -165,13 +166,13 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
             else
             {
                 // Not used because: not meaningful "Resource temporarily unavailable" 
-                //printf("GuestConnectorFromGuest: guest read failed.\n");
+                //Debug_LOG_ERROR("GuestConnectorFromGuest: guest read failed.\n");
             }
         }
     }
     catch (...)
     {
-        printf("FromGuestThread exception\n");
+        Debug_LOG_ERROR("FromGuestThread exception\n");
     }
 }
 
@@ -193,19 +194,19 @@ void LanServer(SocketAdmin *socketAdmin, unsigned int lanPort)
 
             if (socketAdmin->GetSocket(logicalChannel) == nullptr)
             {
-                printf("LanServer: start server thread: in port %d, in address %x (file descriptor: %x)\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr, newsockfd);
+                Debug_LOG_INFO("LanServer: start server thread: in port %d, in address %x (file descriptor: %x)\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr, newsockfd);
                 socketAdmin->ActivateSocket(logicalChannel, new DeviceWriter{newsockfd}, new DeviceReader{newsockfd});
             }
             else
             {
-                printf("LanServer: Error: do not start a new to-guest thread for LAN because such a thread is already active\n");
+                Debug_LOG_ERROR("LanServer: Error: do not start a new to-guest thread for LAN because such a thread is already active\n");
                 close(newsockfd);
             }
         }
     }
     catch (...)
     {
-        printf("LanServer exception\n");
+        Debug_LOG_ERROR("LanServer exception\n");
     }
 }
 
@@ -248,7 +249,7 @@ int main(int argc, const char *argv[])
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
     if (!guestConnector.IsOpen())
     {
-        printf("Could not open pseudo device.\n");
+        Debug_LOG_FATAL("Could not open pseudo device.\n");
         return 0;
     }
 

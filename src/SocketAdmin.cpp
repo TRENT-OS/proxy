@@ -1,7 +1,7 @@
 
 #include "SocketAdmin.h"
-
 #include "GuestConnector.h"
+#include "LibDebug/Debug.h"
 #include "MqttCloud.h"
 #include "utils.h"
 
@@ -14,11 +14,11 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 
     if (!guestConnector.IsOpen())
     {
-        printf("ToGuestThread[%1d]: pseudo device not open.\n", logicalChannel);
+        Debug_LOG_FATAL("ToGuestThread[%1d]: pseudo device not open.\n", logicalChannel);
         return;
     }
 
-    printf("ToGuestThread[%1d]: starting...\n", logicalChannel);
+    Debug_LOG_INFO("ToGuestThread[%1d]: starting...\n", logicalChannel);
 
     try
     {
@@ -36,10 +36,10 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 
             if (readBytes > 0)
             {
-                printf("ToGuestThread[%1d]: bytes received from socket: %d.\n", logicalChannel, readBytes);
+                Debug_LOG_INFO("ToGuestThread[%1d]: bytes received from socket: %d.\n", logicalChannel, readBytes);
                 if (readBytes >= 2)
                 {
-                    printf("ToGuestThread[%1d]: first bytes: %02x %02x\n", logicalChannel, buffer[0], buffer[1]);
+                    Debug_LOG_INFO("ToGuestThread[%1d]: first bytes: %02x %02x\n", logicalChannel, buffer[0], buffer[1]);
                 }
 
                 fflush(stdout);
@@ -48,7 +48,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 
                 if (writtenBytes < 0)
                 {
-                    printf("ToGuestThread[%1d]: guest write failed.\n", logicalChannel);
+                    Debug_LOG_ERROR("ToGuestThread[%1d]: guest write failed.\n", logicalChannel);
                     fflush(stdout);
                 }
             }
@@ -56,32 +56,30 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
             {
                 if (readBytes == 0)
                 {
-                    printf("ToGuestThread[%1d]: closing client connection thread. Read result: %d\n", logicalChannel, readBytes);
+                    Debug_LOG_INFO("ToGuestThread[%1d]: closing client connection thread. Read result: %d\n", logicalChannel, readBytes);
                     break;
                 }
-
-                // printf("Error %s.\n", strerror(errno));
             }
         }
     }
     catch (...)
     {
-        printf("ToGuestThread[%1d] exception\n", logicalChannel);
+        Debug_LOG_ERROR("ToGuestThread[%1d] exception\n", logicalChannel);
     }
 
-    printf("ToGuestThread[%1d]: closing socket\n", logicalChannel);
+    Debug_LOG_INFO("ToGuestThread[%1d]: closing socket\n", logicalChannel);
 
     if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
     {
-        printf("ToGuestThread[%1d]: Unexpected stop of control channel thread !!!!!\n", logicalChannel);
+        Debug_LOG_ERROR("ToGuestThread[%1d]: Unexpected stop of control channel thread !!!!!\n", logicalChannel);
     }
     else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
     {
-        printf("ToGuestThread[%1d]: the WAN socket was closed\n", logicalChannel);
+        Debug_LOG_INFO("ToGuestThread[%1d]: the WAN socket was closed\n", logicalChannel);
     }
     else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
     {
-        printf("ToGuestThread[%1d]: closing the current LAN client connection\n", logicalChannel);
+        Debug_LOG_INFO("ToGuestThread[%1d]: closing the current LAN client connection\n", logicalChannel);
     }
 
     if (socketAdmin->GetSocket(logicalChannel) != nullptr)
@@ -95,11 +93,11 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
             }
         }
 
-        printf("ToGuestThread[%1d]: deactivating the socket; unsolicited: %s \n", logicalChannel, unsolicited ? "true" : "false");
+        Debug_LOG_INFO("ToGuestThread[%1d]: deactivating the socket; unsolicited: %s \n", logicalChannel, (unsolicited ? "true" : "false"));
         socketAdmin->DeactivateSocket(logicalChannel, unsolicited);
     }
 
-    printf("ToGuestThread[%1d]: completed\n", logicalChannel);
+    Debug_LOG_INFO("ToGuestThread[%1d]: completed\n", logicalChannel);
 }
 
 // Possible contexts how to get here:
@@ -111,7 +109,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
     // Check the logical channel is valid
     if (logicalChannel >= UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
-        printf("ActivateSocket: %d\n", -1);
+        Debug_LOG_INFO("ActivateSocket: %d\n", -1);
         return -1;
     }
 
@@ -120,7 +118,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
     {
         if ((outputDevice == nullptr) || (inputDevice == nullptr))
         {
-            printf("ActivateSocket: bad input args\n");
+            Debug_LOG_ERROR("ActivateSocket: bad input args\n");
             return -1;
         }
     }
@@ -136,7 +134,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
         {
             wanSocket = new Socket{wanPort, wanHostName};
             //wanSocket = new Socket{wanPort, "127.0.0.1"};
-            printf("ActivateSocket: create WAN socket: %s:%d\n", wanHostName.c_str(), wanPort);
+            Debug_LOG_INFO("ActivateSocket: create WAN socket: %s:%d\n", wanHostName.c_str(), wanPort);
 
             // We set a timeout on the WAN socket: the thread will unblock on a regular basis and detect
             // if the socket is not existing any more - because it was closed by the from guest thread
@@ -163,7 +161,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
 
     lock.unlock();
 
-    printf("ActivateSocket: %d\n", result);
+    Debug_LOG_INFO("ActivateSocket: %d\n", result);
 
     return result;
 }
@@ -216,7 +214,7 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
 
     lock.unlock();
 
-    printf("DeactivateSocket: %d\n", result);
+    Debug_LOG_INFO("DeactivateSocket: %d\n", result);
 
     return result;
 }
@@ -239,11 +237,11 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
         writtenBytes = outputDevice->Write(buffer);
         if (writtenBytes < 0)
         {
-            printf("logical channel: %d - socket write failed; %s.\n", logicalChannel, strerror(errno));
+            Debug_LOG_ERROR("logical channel: %d - socket write failed; %s.\n", logicalChannel, strerror(errno));
         }
         else
         {
-            printf("logical channel: %d - bytes written to socket: %d.\n", logicalChannel, writtenBytes);
+            Debug_LOG_INFO("logical channel: %d - bytes written to socket: %d.\n", logicalChannel, writtenBytes);
         }
     }
 
