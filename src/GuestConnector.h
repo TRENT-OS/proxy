@@ -66,9 +66,6 @@ class GuestConnector
         UartHdlcDeInit(&uartHdlc); 
     }
 
-    int Open() { return UartHdlcOpen(&uartHdlc); }
-    int Close() { return UartHdlcClose(&uartHdlc); }
-
     int Read(unsigned int length, char *buf, unsigned int *logicalChannel) 
     { 
         int result;
@@ -98,5 +95,8 @@ class GuestConnector
     UartIoHost uartIoHost;
     UartHdlc uartHdlc;
     bool isOpen;
+
+    int Open() { return UartHdlcOpen(&uartHdlc); }
+    int Close() { return UartHdlcClose(&uartHdlc); }
 };
 

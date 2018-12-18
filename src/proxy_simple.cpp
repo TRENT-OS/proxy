@@ -58,8 +58,6 @@ void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChan
     {
         Debug_LOG_ERROR("WriteToGuest[%1d] exception\n", logicalChannel);
     }
-
-    guestConnector.Close();
 }
 
 void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command, unsigned int result)
