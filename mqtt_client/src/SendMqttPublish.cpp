@@ -61,11 +61,8 @@ int main(int argc, const char *argv[])
         //printf("SendMqttPublish: data written - make a pause before closing the socket...\n");
         //std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 15));
 
-        socket.Close();
-
         printf("SendMqttPublish: socket closed - make a pause before creating next socket...\n");
         std::this_thread::sleep_for(std::chrono::milliseconds(1000 * delay));
-
     }
 
     return 0;

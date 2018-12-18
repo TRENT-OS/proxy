@@ -182,10 +182,12 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
 
         if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
         {
+#if 0
             if (unsolicited == false)
             {
                 wanSocket->Close();
             }
+#endif
 
             delete wanSocket;
         }
