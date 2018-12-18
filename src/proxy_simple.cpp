@@ -212,7 +212,7 @@ int main(int argc, const char *argv[])
 {
     if (argc < 2)
     {
-        printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal [lan port] [cloud_host_name] [cloud_port]\n");
+        printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal | QEMU_tcp_port [lan port] [cloud_host_name] [cloud_port]\n");
         return 0;
     }
 

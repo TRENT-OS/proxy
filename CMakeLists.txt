@@ -22,6 +22,7 @@ target_include_directories(${PROJECT_NAME}
         seos_libs/include
         uart_socket/src
         TinyFrame/demo
+        src
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pthread)
