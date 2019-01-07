@@ -18,7 +18,7 @@ using namespace std;
 class ServerSocket
 {
     public:
-    ServerSocket(int port)
+    ServerSocket(int port, bool useRebindProtection = true)
     {
         struct sockaddr_in serv_addr;
         struct hostent *server;
@@ -26,6 +26,17 @@ class ServerSocket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0) 
             error("ERROR opening socket");
+
+        // Handle the case that the given port may be in state TIME_WAIT because of some very recent activity involving this port.
+        // http://www.softlab.ntua.gr/facilities/documentation/unix/unix-socket-faq/unix-socket-faq-2.html#time_wait
+        // see: https://stackoverflow.com/questions/24194961/how-do-i-use-setsockoptso-reuseaddr
+        if (useRebindProtection)
+        {
+            int enable = 1;
+            if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+                error("ERROR using setsockopt");
+        }
+
         bzero((char *) &serv_addr, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_addr.s_addr = INADDR_ANY;
