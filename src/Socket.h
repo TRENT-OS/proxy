@@ -30,6 +30,8 @@ class Socket : public InputDevice, public OutputDevice
         if (sockfd < 0)
         {
             error("ERROR opening socket");
+            close(sockfd);
+            sockfd = -1;
         }
         else
         {
@@ -37,6 +39,8 @@ class Socket : public InputDevice, public OutputDevice
             if (server == NULL) 
             {
                 error("ERROR, no such host");
+                close(sockfd);
+                sockfd = -1;
             }
             else
             {
@@ -51,6 +55,8 @@ class Socket : public InputDevice, public OutputDevice
                 if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
                 {
                     error("ERROR connecting");
+                    close(sockfd);
+                    sockfd = -1;
                 } 
             }
         }
@@ -81,10 +87,12 @@ class Socket : public InputDevice, public OutputDevice
         return sockfd;
     }
 
+    bool IsOpen() const { return sockfd >= 0;}
+
     private:
     int sockfd;
 
-    void error(const char *msg)
+    void error(const char *msg) const
     {
         fprintf(stderr, "%s\n", msg);
     }

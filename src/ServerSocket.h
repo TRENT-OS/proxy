@@ -24,8 +24,11 @@ class ServerSocket
         struct hostent *server;
 
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
-        if (sockfd < 0) 
+        if (sockfd < 0)
+        {
             error("ERROR opening socket");
+            return;
+        }
 
         // Handle the case that the given port may be in state TIME_WAIT because of some very recent activity involving this port.
         // http://www.softlab.ntua.gr/facilities/documentation/unix/unix-socket-faq/unix-socket-faq-2.html#time_wait
@@ -34,7 +37,12 @@ class ServerSocket
         {
             int enable = 1;
             if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
+            {
                 error("ERROR using setsockopt");
+                close(sockfd);
+                sockfd = -1;
+                return;
+            }
         }
 
         bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -44,6 +52,9 @@ class ServerSocket
         if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
         {
             error("ERROR on binding");
+            close(sockfd);
+            sockfd = -1;
+            return;
         } 
     }
 
@@ -69,10 +80,12 @@ class ServerSocket
         return fd;
     }
 
+    bool IsOpen() const { return sockfd >= 0;}
+
     private:
     int sockfd;
 
-    void error(const char *msg)
+    void error(const char *msg) const
     {
         fprintf(stderr, "%s\n", msg);
     }
