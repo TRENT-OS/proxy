@@ -129,6 +129,8 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
     SendResponse(socketAdmin, command, PARAM(result, result < 0 ? 1 : 0));
 }
 
+static bool KeepFromGuestThreadAlive = true;
+
 void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
 {
     size_t bufSize = 1024;
@@ -139,7 +141,7 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
 
     try
     {
-        while (true)
+        while (KeepFromGuestThreadAlive)
         {
             unsigned int logicalChannel;
             buffer.resize(bufSize);
@@ -180,6 +182,12 @@ void LanServer(SocketAdmin *socketAdmin, unsigned int lanPort)
     socklen_t clientLength;
     struct sockaddr_in clientAddress;
     unsigned int logicalChannel = UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN;
+
+    if (!serverSocket.IsOpen())
+    {
+        Debug_LOG_ERROR("LanServer: Error: could not create server socket\n");
+        return;
+    }
 
     serverSocket.Listen(5);
 
@@ -261,7 +269,9 @@ int main(int argc, const char *argv[])
     // Handle the LAN socket
     LanServer(&socketAdmin, lanPort);
 
-    // We never get here -> no cleanup
+    // We only get here if something in the LanServer went wrong.
+    KeepFromGuestThreadAlive = false;
+    fromGuestThread.join();
 
     return 0;
 }
