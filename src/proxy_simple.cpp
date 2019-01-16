@@ -131,6 +131,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
 
 static bool KeepFromGuestThreadAlive = true;
 
+// "RX" only = it receives all data from the guest (=seL4) and a) puts it into the appropriate socket or b) executes the received control command
 void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
 {
     size_t bufSize = 1024;

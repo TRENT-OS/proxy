@@ -30,7 +30,8 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
             {
                 if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
                 {
-                    break;
+                  // Leave the endless loop in case a close of the wan                 
+                   break;
                 }
             }
 
@@ -54,6 +55,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
             }
             else
             {
+                // Has the cloud server closed the connection?
                 if (readBytes == 0)
                 {
                     Debug_LOG_INFO("ToGuestThread[%1d]: closing client connection thread. Read result: %d\n", logicalChannel, readBytes);
