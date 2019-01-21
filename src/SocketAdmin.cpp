@@ -105,7 +105,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 // Possible contexts how to get here:
 // - from guest thread: wants to activate the WAN socket
 // - from the LAN server: wants to activate a newly created client socket
-int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outputDevice, InputDevice *inputDevice) 
+int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
 {
     // Check the logical channel is valid
     if (logicalChannel >= UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
@@ -115,13 +115,10 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
     }
 
     // Check valid arguments
-    if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+    if (ioDevice == nullptr)
     {
-        if ((outputDevice == nullptr) || (inputDevice == nullptr))
-        {
-            Debug_LOG_ERROR("ActivateSocket: bad input args\n");
-            return -1;
-        }
+        Debug_LOG_ERROR("ActivateSocket: bad input args\n");
+        return -1;
     }
 
     int result = -1;
@@ -130,39 +127,40 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
 
     if (guestListeners.GetListener(logicalChannel) == nullptr)
     {
-        // In case of WAN: create the real socket
-        if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+        result = ioDevice->Create();
+        if (result >= 0)
         {
-            wanSocket = new Socket{wanPort, wanHostName};
-            //wanSocket = new Socket{wanPort, "127.0.0.1"};
-            Debug_LOG_INFO("ActivateSocket: create WAN socket: %s:%d\n", wanHostName.c_str(), wanPort);
+            // Store the io device;
+            ioDevices[logicalChannel] = ioDevice;
 
-            // We set a timeout on the WAN socket: the thread will unblock on a regular basis and detect
-            // if the socket is not existing any more - because it was closed by the from guest thread
-            // on behalf of the guest - and run to completion.
-            struct timeval tv;
-            tv.tv_sec = 1;
-            tv.tv_usec = 0;
-            setsockopt(wanSocket->GetFileDescriptor(), SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-
-            outputDevice = wanSocket;
-            inputDevice = wanSocket;
-
+            // Reset the close requested flag.
             closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
+
+            // Register socket in GuestListeners
+            guestListeners.SetListener(logicalChannel, ioDevice->GetOutputDevice());
+
+            // Create thread
+            toGuestThreads[logicalChannel] =
+            thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), ioDevice->GetInputDevice()};
         }
-
-        // Register socket in GuestListeners
-        guestListeners.SetListener(logicalChannel, outputDevice);
-
-        // Create thread
-        toGuestThreads[logicalChannel] = thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), inputDevice};
-
-        result = 0;
+        else
+        {
+           Debug_LOG_ERROR("ActivateSocket: error creating io devices\n");
+        }
+    }
+    else
+    {
+        Debug_LOG_ERROR("ActivateSocket: do not activate - logical channel already exisiting\n");
     }
 
     lock.unlock();
 
     Debug_LOG_INFO("ActivateSocket: %d\n", result);
+
+    if (result  < 0)
+    {
+        delete ioDevice;
+    }
 
     return result;
 }
@@ -177,32 +175,17 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
 
     if (guestListeners.GetListener(logicalChannel) != nullptr)
     {
-
-        // Initial implementation: do not sync with WAN thread destruction and always indicate success - has to be tested
-
-        if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+        if (unsolicited == false)
         {
-#if 0
-            if (unsolicited == false)
-            {
-                wanSocket->Close();
-            }
-#endif
+            OutputDevice *outputDevice = GetSocket(logicalChannel);
+            outputDevice->Close();
+        }
 
-            delete wanSocket;
-        }
-        else
-        {
-            if (unsolicited == false)
-            {
-                OutputDevice *outputDevice = GetSocket(logicalChannel);
-                outputDevice->Close();
-            }
-        }
+        delete ioDevices[logicalChannel];
 
         guestListeners.SetListener(logicalChannel, nullptr);
 
-        // Wait unitl the according to guest thread has run to completion.
+        // Wait until the according to guest thread has run to completion.
         if (unsolicited == false)
         {
             //toGuestThreads[logicalChannel].join();

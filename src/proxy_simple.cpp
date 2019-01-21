@@ -5,6 +5,8 @@
 #include "Socket.h"
 #include "MqttCloud.h"
 #include "SocketAdmin.h"
+#include "LanServerSocket.h"
+#include "CloudSocketCreator.h"
 #include "LibDebug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
@@ -85,7 +87,7 @@ void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command
         response);
 }
 
-void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
+void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer, IoDeviceCreator *ioDeviceCreator)
 {
     if (buffer.size() != 2)
     {
@@ -113,7 +115,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
     {
         if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
         {
-            result = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN, nullptr, nullptr);
+            result = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN, ioDeviceCreator->Create());
         }
         else
         {
@@ -131,7 +133,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
 static bool KeepFromGuestThreadAlive = true;
 
 // "RX" only = it receives all data from the guest (=seL4) and a) puts it into the appropriate socket or b) executes the received control command
-void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
+void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, IoDeviceCreator *ioDeviceCreator)
 {
     size_t bufSize = 1024;
     vector<char> buffer(bufSize);
@@ -155,7 +157,7 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin)
                 if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
                 {
                     // Handle the commands arriving on the control channel
-                    HandleSocketCommand(socketAdmin, buffer);
+                    HandleSocketCommand(socketAdmin, buffer, ioDeviceCreator);
                 }
                 else
                 {
@@ -201,7 +203,7 @@ void LanServer(SocketAdmin *socketAdmin, unsigned int lanPort)
             if (socketAdmin->GetSocket(logicalChannel) == nullptr)
             {
                 Debug_LOG_INFO("LanServer: start server thread: in port %d, in address %x (file descriptor: %x)\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr, newsockfd);
-                socketAdmin->ActivateSocket(logicalChannel, new DeviceWriter{newsockfd}, new DeviceReader{newsockfd});
+                socketAdmin->ActivateSocket(logicalChannel, new LanServerSocket{newsockfd});
             }
             else
             {
@@ -259,12 +261,13 @@ int main(int argc, const char *argv[])
         return 0;
     }
 
-    SocketAdmin socketAdmin{&pseudoDevice, hostName, port};
+    SocketAdmin socketAdmin{&pseudoDevice};
+    CloudSocketCreator cloudSocketCreator{port, hostName};
 
     // The "GUEST thread" is:
     // a) receiving all hdlc frames and distributing them to the sockets
     // b) handling the socket admin commands from the guest
-    thread fromGuestThread{FromGuestThread, &guestConnector, &socketAdmin};
+    thread fromGuestThread{FromGuestThread, &guestConnector, &socketAdmin, &cloudSocketCreator};
 
     // Handle the LAN socket
     LanServer(&socketAdmin, lanPort);

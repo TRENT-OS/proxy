@@ -23,6 +23,24 @@ class InputDevice
     virtual int GetFileDescriptor() const = 0;
 };
 
+// Used by SocketAdmin.cpp. Up to now represents a Linux socket. Later on: wrapper for TUN interface; PICO socket.
+class IoDevice
+{
+    public:
+    virtual int Create() = 0;
+    virtual OutputDevice *GetOutputDevice() = 0;
+    virtual InputDevice *GetInputDevice() = 0;
+    virtual ~IoDevice() {}
+};
+
+// Indirection for the from guest thread; currently it yields Linux sockets
+class IoDeviceCreator
+{
+    public:
+    virtual IoDevice *Create() = 0;
+    virtual ~IoDeviceCreator() {}
+};
+
 class OutputLogger : public OutputDevice
 {
     public:

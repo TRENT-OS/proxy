@@ -3,7 +3,7 @@
 
 #include "GuestListeners.h"
 #include "SharedResource.h"
-#include "Socket.h"
+#include "IoDevices.h"
 #include "uart_socket_guest_rpc_conventions.h"
 
 
@@ -16,18 +16,16 @@ using namespace std;
 class SocketAdmin
 {
     public:
-    SocketAdmin(SharedResource<string> *pseudoDevice, string wanHostName, int wanPort) :
-        wanPort{wanPort},
-        wanHostName{wanHostName},
+    SocketAdmin(SharedResource<string> *pseudoDevice) :
         pseudoDevice{pseudoDevice},
-        wanSocket(nullptr),
         guestListeners{UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX},
         closeWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX),
-        toGuestThreads(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
+        toGuestThreads(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX),
+        ioDevices(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
     }
 
-    int ActivateSocket(unsigned int logicalChannel, OutputDevice *outputDevice , InputDevice *inputDevice);
+    int ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice);
     int DeactivateSocket(unsigned int logicalChannel, bool unsolicited);
     OutputDevice *GetSocket(unsigned int logicalChannel) const;
     void SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer);
@@ -36,12 +34,10 @@ class SocketAdmin
     void RequestClose(unsigned int logicalChannel);
 
     private:
-    int wanPort;
-    string wanHostName;
     SharedResource<string> *pseudoDevice;
-    Socket *wanSocket;
     GuestListeners guestListeners;
     vector<bool> closeWasRequested;
     vector<thread> toGuestThreads;
+    vector<IoDevice *> ioDevices;
     mutable mutex lock;
 };
