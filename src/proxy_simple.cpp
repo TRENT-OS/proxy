@@ -117,7 +117,6 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer)
         }
         else
         {
-            //result = socketAdmin->DeactivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN, false);
             socketAdmin->RequestClose(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
             result = 0;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));

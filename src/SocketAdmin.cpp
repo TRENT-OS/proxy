@@ -30,7 +30,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
             {
                 if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
                 {
-                  // Leave the endless loop in case a close of the wan                 
+                   // Leave the endless loop in case a close of the wan
                    break;
                 }
             }
@@ -103,7 +103,6 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 }
 
 // Possible contexts how to get here:
-// - main: wants to activate the control channel socket
 // - from guest thread: wants to activate the WAN socket
 // - from the LAN server: wants to activate a newly created client socket
 int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outputDevice, InputDevice *inputDevice) 
@@ -169,7 +168,6 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, OutputDevice *outpu
 }
 
 // Possible contexts how to get here:
-// - from guest thread: wants to deactivate the WAN socket
 // - to guest threads (LAN, WAN, control channel): at the end of their life time
 int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited) 
 {
