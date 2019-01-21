@@ -20,7 +20,6 @@ class InputDevice
     public:
     virtual int Read(std::vector<char> &buf) = 0;
     virtual int Close() = 0;
-    virtual int GetFileDescriptor() const = 0;
 };
 
 // Used by SocketAdmin.cpp. Up to now represents a Linux socket. Later on: wrapper for TUN interface; PICO socket.
@@ -70,11 +69,6 @@ class DeviceReader : public InputDevice
     int Close()
     {
         return close(fd);
-    }
-
-    int GetFileDescriptor() const
-    {
-        return fd;
     }
 
     private:
