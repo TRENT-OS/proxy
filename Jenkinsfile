@@ -8,6 +8,8 @@ pipeline {
             }
         }
         stage('build') {
+            agent any
+            options { skipDefaultCheckout(true) }
             steps {
                 echo '########################################## Building #########################################'
                 sh '''#!/bin/bash
