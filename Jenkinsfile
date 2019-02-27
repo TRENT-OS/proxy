@@ -8,7 +8,13 @@ pipeline {
             }
         }
         stage('build') {
-            agent any
+            agent {
+                docker {
+                    image 'camkes_build_env_20190227'
+                    // bind the localtime to avoid problems of gaps between the localtime of the container and the host
+                    args '-v /etc/localtime:/etc/localtime:ro'
+                }
+            }
             options { skipDefaultCheckout(true) }
             steps {
                 echo '########################################## Building #########################################'
