@@ -25,6 +25,7 @@ pipeline {
                         if [ -d clang_analysis ] && [ -z `ls clang_analysis/` ]; then RESULT=0; fi
                         exit $RESULT
                     '''
+                cleanWs()
             }
         }
     }
