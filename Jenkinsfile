@@ -20,6 +20,7 @@ pipeline {
                 echo '########################################## Building #########################################'
                 sh '''#!/bin/bash
                         rm -rf clang_analysis
+                        rm -rf build
                         scan-build -o clang_analysis ./build.sh
                         RESULT=1
                         if [ -d clang_analysis ] && [ -z `ls clang_analysis/` ]; then RESULT=0; fi
