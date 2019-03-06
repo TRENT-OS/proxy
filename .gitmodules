@@ -7,3 +7,10 @@
 [submodule "TinyFrame"]
 	path = TinyFrame
 	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/ext/tinyframe.git
+[submodule "picotcp"]
+	path = picotcp
+	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/ext/picotcp.git
+[submodule "picotcp-bsd"]
+	path = picotcp-bsd
+	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/ext/picotcp-bsd.git
+	branch = picobsd_changes_mqtt_proxy
