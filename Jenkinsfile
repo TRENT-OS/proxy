@@ -25,7 +25,7 @@ pipeline {
                         rm -rf clang_analysis
                         scan-build -o clang_analysis ./build.sh
                         RESULT=1
-                        if [ -d clang_analysis ] && [ -z `ls clang_analysis/` ]; then RESULT=0; else rm -rf build; fi
+                        if [ $? -eq 0 ] && [ -d clang_analysis ] && [ -z `ls clang_analysis/` ]; then RESULT=0; else rm -rf build; fi
                         exit $RESULT
                     '''
                 cleanWs()
