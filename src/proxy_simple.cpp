@@ -7,6 +7,8 @@
 #include "SocketAdmin.h"
 #include "LanServerSocket.h"
 #include "CloudSocketCreator.h"
+#include "PicoSocket.h"
+#include "PicoCloudSocketCreator.h"
 #include "LibDebug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
@@ -14,6 +16,10 @@
 #include <chrono>
 #include <thread>
 
+extern __thread int in_the_stack;
+extern "C" {
+extern void pico_tick_thread(void *arg);
+}
 using namespace std;
 
 string UartSocketCommand(UartSocketGuestSocketCommand command)
@@ -138,8 +144,11 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, I
     size_t bufSize = 1024;
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
+    string s = "FromGuestThread";
 
     Debug_LOG_INFO("FromGuestThread: starting.\n");
+    in_the_stack =0;             // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
+    pthread_setname_np(pthread_self(), s.c_str());
 
     try
     {
@@ -218,11 +227,21 @@ void LanServer(SocketAdmin *socketAdmin, unsigned int lanPort)
     }
 }
 
+// Tick thread of PicoTCP. Thread called every 1 ms
+void PicoTickThread()
+{
+	string s = "PicoTickThread";
+	Debug_LOG_INFO("PicoTickThread: starting.\n");
+	pthread_setname_np(pthread_self(), s.c_str());
+	pico_tick_thread(NULL);
+}
+
 int main(int argc, const char *argv[])
 {
-    if (argc < 2)
+	pthread_t ticker;
+	if (argc < 2)
     {
-        printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal | QEMU_tcp_port [lan port] [cloud_host_name] [cloud_port]\n");
+        printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal | QEMU_tcp_port [lan port] [cloud_host_name] [cloud_port] [use_pico]\n");
         return 0;
     }
 
@@ -246,14 +265,23 @@ int main(int argc, const char *argv[])
         port = atoi(argv[4]);
     }
 
-    printf("Starting mqtt proxy on lan port: %d with pseudo device: %s using cloud host: %s port: %d\n", 
+    int use_pico = 1;
+    if(argc > 5)
+    {
+    	use_pico = atoi(argv[5]);
+    }
+
+    printf("Starting mqtt proxy on lan port: %d with pseudo device: %s using cloud host: %s port: %d use_pico:%d \n",
         lanPort, 
         pseudoDeviceName.c_str(),
         hostName.c_str(), 
-        port);
+        port,
+		use_pico);
+
+    thread pico_tick{PicoTickThread};
+    in_the_stack =1;
 
     SharedResource<string> pseudoDevice{&pseudoDeviceName};
-
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
     if (!guestConnector.IsOpen())
     {
@@ -261,13 +289,29 @@ int main(int argc, const char *argv[])
         return 0;
     }
 
-    SocketAdmin socketAdmin{&pseudoDevice};
-    CloudSocketCreator cloudSocketCreator{port, hostName};
 
-    // The "GUEST thread" is:
-    // a) receiving all hdlc frames and distributing them to the sockets
-    // b) handling the socket admin commands from the guest
-    thread fromGuestThread{FromGuestThread, &guestConnector, &socketAdmin, &cloudSocketCreator};
+   SocketAdmin socketAdmin{&pseudoDevice};
+
+   // The "GUEST thread" is:
+   // a) receiving all hdlc frames and distributing them to the sockets
+   // b) handling the socket admin commands from the guest
+
+   IoDeviceCreator *pCreator;
+   if (use_pico)
+   {
+	   pCreator = new PicoCloudSocketCreator{port, hostName};
+   }
+   else
+   {
+	   pCreator = new CloudSocketCreator{port, hostName};
+
+   }
+
+   thread fromGuestThread{
+	   FromGuestThread,
+	   &guestConnector,
+	   &socketAdmin,
+	   pCreator};
 
     // Handle the LAN socket
     LanServer(&socketAdmin, lanPort);

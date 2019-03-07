@@ -2,6 +2,11 @@ cmake_minimum_required(VERSION 3.10)
 
 project(mqtt_proxy CXX)
 
+set(PICO_PATH "picotcp/build/lib")
+set(PICO_INCLUDE_PATH "picotcp/build/include")
+set(PICO_BSD_PATH "picotcp-bsd")
+
+
 add_executable(${PROJECT_NAME}
     uart_socket/src/uart_hdlc.c
     uart_socket/src/uart_io_host.c
@@ -23,10 +28,14 @@ target_include_directories(${PROJECT_NAME}
         uart_socket/src
         TinyFrame/demo
         src
+    PUBLIC
+        ${PICO_INCLUDE_PATH}
+        ${PICO_BSD_PATH}  
+        ${PICO_PATH}
 )
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pthread)
-target_link_libraries(${PROJECT_NAME} pthread)
+target_link_libraries(${PROJECT_NAME} pthread ${CMAKE_CURRENT_SOURCE_DIR}/${PICO_BSD_PATH}/build/libpico-bsd.a  dl ${CMAKE_CURRENT_SOURCE_DIR}/${PICO_PATH}/libpicotcp.a)
 
 
 add_executable(SendMqttPublish
