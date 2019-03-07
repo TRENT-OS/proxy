@@ -20,13 +20,9 @@ pipeline {
                 echo '########################################## Building #########################################'
                 sh '''#!/bin/bash
                         # install needed dependecies
-                        apt-get install libvdeplug2-dev vde2
+                        sudo apt-get install libvdeplug2-dev vde2
 
-                        rm -rf clang_analysis
-                        scan-build -o clang_analysis ./build.sh
-                        RESULT=1
-                        if [ $? -eq 0 ] && [ -d clang_analysis ] && [ -z `ls clang_analysis/` ]; then RESULT=0; else rm -rf build; fi
-                        exit $RESULT
+                        ./build.sh
                     '''
                 cleanWs()
             }
