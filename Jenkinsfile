@@ -10,7 +10,7 @@ pipeline {
         stage('build') {
             agent {
                 docker {
-                    image 'camkes_build_env_20190227'
+                    image 'camkes_build_env_20190307'
                     // bind the localtime to avoid problems of gaps between the localtime of the container and the host
                     args '-v /etc/localtime:/etc/localtime:ro'
                 }
@@ -19,6 +19,9 @@ pipeline {
             steps {
                 echo '########################################## Building #########################################'
                 sh '''#!/bin/bash
+                        # install needed dependecies
+                        apt-get install libvdeplug2-dev vde2
+
                         rm -rf clang_analysis
                         scan-build -o clang_analysis ./build.sh
                         RESULT=1
