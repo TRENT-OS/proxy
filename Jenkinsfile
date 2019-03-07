@@ -20,7 +20,7 @@ pipeline {
                 echo '########################################## Building #########################################'
                 sh '''#!/bin/bash
                         # install needed dependecies
-                        sudo apt-get install libvdeplug2-dev vde2
+                        sudo apt-get --assume-yes install libvdeplug2-dev vde2
 
                         ./build.sh
                     '''
