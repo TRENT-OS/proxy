@@ -21,12 +21,9 @@ The project builds a Linux command line utility
 
     # check out
     git clone --recursive -b master ssh://git@bitbucket.hensoldt-cyber.systems:7999/hc/mqtt_proxy_demo.git
-
-    # build
-    mkdir build
-    cd build
-    cmake .. -G Ninja
-    ninja
+    
+    # build automatic
+    run build.sh on the terminal e.g. $./build.sh
 
     # run
     # The command line parameter "pseudoterminal" is the name of the device QEMU has mapped the serial port to. Usually it is something like /dev/pts/4
