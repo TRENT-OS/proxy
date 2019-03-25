@@ -16,9 +16,11 @@
 #include <chrono>
 #include <thread>
 
+int use_pico =0; // By default disable picotcp
 extern __thread int in_the_stack;
 extern "C" {
 extern void pico_tick_thread(void *arg);
+extern void pico_wrapper_start();
 }
 using namespace std;
 
@@ -48,6 +50,13 @@ void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChan
     int writtenBytes;
     GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
 
+    in_the_stack=1;
+
+    if(use_pico ==1)
+    {
+    	in_the_stack =0;             // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
+
+    }
     if (!guestConnector.IsOpen())
     {
         Debug_LOG_FATAL("WriteToGuest[%1d]: pseudo device not open.\n", logicalChannel);
@@ -71,6 +80,7 @@ void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChan
 void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command, unsigned int result)
 {
     vector<char> response(2);
+
 
     if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
     {
@@ -100,6 +110,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer, IoDevic
         Debug_LOG_ERROR("FromGuestThread: incoming socket command with wrong length.\n");
         return;
     }
+
 
     UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
     unsigned int commandLogicalChannel = buffer[1];
@@ -147,8 +158,11 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, I
     string s = "FromGuestThread";
 
     Debug_LOG_INFO("FromGuestThread: starting.\n");
-    in_the_stack =0;             // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
-    pthread_setname_np(pthread_self(), s.c_str());
+    if(use_pico ==1)
+    {
+    	in_the_stack =0;             // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
+    	pthread_setname_np(pthread_self(), s.c_str());
+    }
 
     try
     {
@@ -193,6 +207,7 @@ void LanServer(SocketAdmin *socketAdmin, unsigned int lanPort)
     socklen_t clientLength;
     struct sockaddr_in clientAddress;
     unsigned int logicalChannel = UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN;
+
 
     if (!serverSocket.IsOpen())
     {
@@ -265,7 +280,6 @@ int main(int argc, const char *argv[])
         port = atoi(argv[4]);
     }
 
-    int use_pico = 1;
     if(argc > 5)
     {
     	use_pico = atoi(argv[5]);
@@ -278,8 +292,16 @@ int main(int argc, const char *argv[])
         port,
 		use_pico);
 
-    thread pico_tick{PicoTickThread};
-    in_the_stack =1;
+	pico_wrapper_start();
+
+    thread *pPico_tick = NULL;
+  	if(use_pico ==1)
+	{
+  		pPico_tick = new thread{PicoTickThread};
+	}
+
+
+	in_the_stack =1;       // it must be 1 for host system = linux
 
     SharedResource<string> pseudoDevice{&pseudoDeviceName};
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
