@@ -81,6 +81,7 @@ void SendResponse(unsigned int logicalChannel, SocketAdmin *socketAdmin, UartSoc
 {
     vector<char> response(8,0);
 
+
     if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
     {
         response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN_CNF);
@@ -327,7 +328,7 @@ int main(int argc, const char *argv[])
         use_pico,
         use_tap);
 
-    pico_wrapper_start();
+	pico_wrapper_start();
 
     thread *pPico_tick = NULL;
   	if(use_pico ==1)
