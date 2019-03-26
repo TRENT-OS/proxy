@@ -12,7 +12,7 @@
 #include "LibDebug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
-
+#include "TapSocketCreator.h"
 #include <chrono>
 #include <thread>
 
@@ -79,13 +79,21 @@ void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChan
 
 void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command, unsigned int result)
 {
-    vector<char> response(2);
+    vector<char> response(8,0);   //response(2);
 
 
     if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
     {
         response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN_CNF);
     }
+
+    else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
+    {
+    	response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC_CNF);
+       // how to copy to response from tap.h device ??
+    	//memcpy(response[2],socketAdmin.tapdev->mac,sizeof(socketAdmin.tapdev->mac));
+    }
+
     else
     {
         response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE_CNF);
@@ -103,7 +111,7 @@ void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command
         response);
 }
 
-void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer, IoDeviceCreator *ioDeviceCreator)
+void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer, IoDeviceCreator *ioDeviceCreator, IoDeviceCreator *ioTapDeviceCreator)
 {
     if (buffer.size() != 2)
     {
@@ -141,6 +149,15 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer, IoDevic
             std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));
         }
     }
+    else if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_TAP)
+    {
+
+    	if(command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
+    	{
+    		 result = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_TAP, ioTapDeviceCreator->Create());
+    	}
+
+    }
 
     // Debug_LOG_INFO("Handle socket command: result:%d\n", result);
 
@@ -150,7 +167,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer, IoDevic
 static bool KeepFromGuestThreadAlive = true;
 
 // "RX" only = it receives all data from the guest (=seL4) and a) puts it into the appropriate socket or b) executes the received control command
-void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, IoDeviceCreator *ioDeviceCreator)
+void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, IoDeviceCreator *ioDeviceCreator,IoDeviceCreator *ioTapDeviceCreator)
 {
     size_t bufSize = 1024;
     vector<char> buffer(bufSize);
@@ -180,11 +197,11 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, I
                 if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
                 {
                     // Handle the commands arriving on the control channel
-                    HandleSocketCommand(socketAdmin, buffer, ioDeviceCreator);
+                    HandleSocketCommand(socketAdmin, buffer, ioDeviceCreator,ioTapDeviceCreator);
                 }
                 else
                 {
-                    // For LAN, WAN: write the received data to the according socket
+                    // For LAN, WAN and TAP: write the received data to the according socket
                     socketAdmin->SendDataToSocket(logicalChannel, buffer);
                 }
             }
@@ -318,7 +335,7 @@ int main(int argc, const char *argv[])
    // a) receiving all hdlc frames and distributing them to the sockets
    // b) handling the socket admin commands from the guest
 
-   IoDeviceCreator *pCreator;
+   IoDeviceCreator *pCreator, *pTapCreator;
    if (use_pico)
    {
 	   pCreator = new PicoCloudSocketCreator{port, hostName};
@@ -328,12 +345,13 @@ int main(int argc, const char *argv[])
 	   pCreator = new CloudSocketCreator{port, hostName};
 
    }
+   pTapCreator = new TapSocketCreator("tap0");
 
    thread fromGuestThread{
 	   FromGuestThread,
 	   &guestConnector,
 	   &socketAdmin,
-	   pCreator};
+	   pCreator,pTapCreator};
 
     // Handle the LAN socket
     LanServer(&socketAdmin, lanPort);

@@ -133,8 +133,21 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
             // Store the io device;
             ioDevices[logicalChannel] = ioDevice;
 
+
             // Reset the close requested flag.
-            closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
+            if(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_TAP == logicalChannel)
+            {
+            	closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_TAP] = false;
+
+            	InputDevice* socket =  ioDevice->GetInputDevice();
+            	int res = socket->getMac("tap0");
+
+            }
+            else
+            {
+            	closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
+
+            }
 
             // Register socket in GuestListeners
             guestListeners.SetListener(logicalChannel, ioDevice->GetOutputDevice());

@@ -20,6 +20,7 @@ class InputDevice
     public:
     virtual int Read(std::vector<char> &buf) = 0;
     virtual int Close() = 0;
+    virtual int getMac(const char* name) =0;
 };
 
 // Used by SocketAdmin.cpp. Up to now represents a Linux socket. Later on: wrapper for TUN interface; PICO socket.
@@ -71,6 +72,10 @@ class DeviceReader : public InputDevice
         return close(fd);
     }
 
+    int getMac(const char* name)
+    {
+      return 0;
+    }
     private:
     int fd;
 };
