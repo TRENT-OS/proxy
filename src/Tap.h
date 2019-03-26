@@ -35,6 +35,7 @@
 
 using namespace std;
 
+#define TUN_MTU 1024
 
 class Tap : public InputDevice, public OutputDevice
 {
@@ -47,7 +48,25 @@ public:
 
       int Read(vector<char> &buf)
       {
-          return read(tapfd, &buf[0], buf.size());
+    	  struct pollfd pfd;
+    	     int len;
+    	     pfd.fd = tapfd;
+    	     pfd.events = POLLIN;
+    	     printf("[yk]%s\n", __FUNCTION__);
+    	     do  {
+    	         if (poll(&pfd, 1, 0) <= 0) {
+    	             return 0;
+    	         }
+
+    	         len = (int)read(tapfd, &buf[0], buf.size());
+    	         if (len > 0) {
+    	               return len;
+    	         }
+    	     } while(0);
+
+
+
+    	  //return read(tapfd, &buf[0], buf.size());
       }
 
       int Write(vector<char> buf)
@@ -69,7 +88,7 @@ public:
       }
 
 
-      int getMac(const char* name)
+      int getMac(const char* name,char *mac)
       {
     	    int sck;
     	    struct ifreq eth;
@@ -101,7 +120,6 @@ public:
 
 private:
       int tapfd;
-      uint8_t mac[6] = {};
       void error(const char *msg) const
       {
           fprintf(stderr, "%s\n", msg);

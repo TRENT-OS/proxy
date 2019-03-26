@@ -7,7 +7,7 @@
 
 void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
-    size_t bufSize = 256;
+    size_t bufSize = 1024;    //256;
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
     GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
@@ -107,6 +107,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 // - from the LAN server: wants to activate a newly created client socket
 int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
 {
+
     // Check the logical channel is valid
     if (logicalChannel >= UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
@@ -121,40 +122,31 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
         return -1;
     }
 
+
     int result = -1;
 
     lock.lock();
 
     if (guestListeners.GetListener(logicalChannel) == nullptr)
     {
+    	Debug_LOG_INFO("yk....2\n");
         result = ioDevice->Create();
         if (result >= 0)
         {
             // Store the io device;
             ioDevices[logicalChannel] = ioDevice;
 
-
             // Reset the close requested flag.
-            if(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_TAP == logicalChannel)
-            {
-            	closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_TAP] = false;
+          	closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
 
-            	InputDevice* socket =  ioDevice->GetInputDevice();
-            	int res = socket->getMac("tap0");
-
-            }
-            else
-            {
-            	closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
-
-            }
-
+          	Debug_LOG_INFO("yk....3\n");
             // Register socket in GuestListeners
             guestListeners.SetListener(logicalChannel, ioDevice->GetOutputDevice());
 
             // Create thread
             toGuestThreads[logicalChannel] =
             thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), ioDevice->GetInputDevice()};
+            Debug_LOG_INFO("yk....4\n");
         }
         else
         {

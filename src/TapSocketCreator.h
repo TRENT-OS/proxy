@@ -44,7 +44,8 @@ class TapSocketCreator : public IoDeviceCreator
 
     IoDevice *Create()
     {
-        return new TapSocket(tapfd);
+        printf("Create Tap socket...%s\n",__FUNCTION__);
+    	return new TapSocket(tapfd);
     }
 
 };

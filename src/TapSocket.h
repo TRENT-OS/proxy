@@ -21,7 +21,6 @@ class TapSocket : public IoDevice
 {
     private:
     int tapfd;
-    string hostName;
     Tap *socket;
 
     public:
