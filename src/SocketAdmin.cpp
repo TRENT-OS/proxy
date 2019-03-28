@@ -5,11 +5,22 @@
 #include "MqttCloud.h"
 #include "utils.h"
 
+extern __thread int in_the_stack;
+extern int use_pico;
 void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
+
     size_t bufSize = 1024;    //256;
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
+    if(use_pico)
+    {
+    	in_the_stack=0;
+    }
+    else
+    {
+    	in_the_stack=1;
+    }
     GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
 
     if (!guestConnector.IsOpen())
@@ -129,8 +140,9 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
 
     if (guestListeners.GetListener(logicalChannel) == nullptr)
     {
-    	Debug_LOG_INFO("yk....2\n");
+
         result = ioDevice->Create();
+
         if (result >= 0)
         {
             // Store the io device;
@@ -139,14 +151,14 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
             // Reset the close requested flag.
           	closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
 
-          	Debug_LOG_INFO("yk....3\n");
+
             // Register socket in GuestListeners
             guestListeners.SetListener(logicalChannel, ioDevice->GetOutputDevice());
 
             // Create thread
             toGuestThreads[logicalChannel] =
             thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), ioDevice->GetInputDevice()};
-            Debug_LOG_INFO("yk....4\n");
+
         }
         else
         {

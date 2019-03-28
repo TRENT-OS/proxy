@@ -40,9 +40,11 @@ class TapSocket : public IoDevice
 
     int Create()
     {
+    	Debug_LOG_INFO("TapSocket: create TAP Dev socket start: %s:%d\n",__FUNCTION__,tapfd);
         socket = new Tap(tapfd);
-        Debug_LOG_INFO("CloudSocket: create TAP Dev socket: %s:%d\n");
-        return 1;
+        Debug_LOG_INFO("TapSocket: create TAP Dev socket end: %s:%p\n",__FUNCTION__,socket);
+
+        return 0;
     }
 
     OutputDevice *GetOutputDevice()

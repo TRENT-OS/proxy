@@ -318,10 +318,10 @@ int main(int argc, const char *argv[])
         pseudoDeviceName.c_str(),
         hostName.c_str(), 
         port,
-		use_pico,
-		use_tap);
+        use_pico,
+        use_tap);
 
-	pico_wrapper_start();
+    pico_wrapper_start();
 
     thread *pPico_tick = NULL;
   	if(use_pico ==1)

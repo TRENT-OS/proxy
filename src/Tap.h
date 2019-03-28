@@ -52,17 +52,23 @@ public:
     	     int len;
     	     pfd.fd = tapfd;
     	     pfd.events = POLLIN;
-    	     printf("[yk]%s\n", __FUNCTION__);
     	     do  {
-    	         if (poll(&pfd, 1, 0) <= 0) {
-    	             return 0;
-    	         }
-
-    	         len = (int)read(tapfd, &buf[0], buf.size());
-    	         if (len > 0) {
+    	           if (poll(&pfd, 1, 0) <= 0)
+    	           {
+    	        	   return -1;
+    	           }
+      	    	    printf("[yk]%s....2\n", __FUNCTION__);
+    	           len = (int)read(tapfd, &buf[0], buf.size());
+    	            if (len > 0)
+    	             {
     	               return len;
-    	         }
-    	     } while(0);
+    	             }
+    	            else
+    	            {
+    	        	 return -1;
+    	            }
+
+    	       } while(0);
 
 
 
@@ -78,6 +84,7 @@ public:
 
       int Close()
       {
+    	  printf("Tap Close called %s\n",__FUNCTION__);
           return close(tapfd);
       }
 
