@@ -24,7 +24,6 @@ pipeline {
 
                         ./build.sh
                     '''
-                cleanWs()
             }
         }
         stage('prepare_test') {
