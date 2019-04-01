@@ -77,7 +77,7 @@ void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChan
     }
 }
 
-void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command, vector<char> result)
+void SendResponse(unsigned int logicalChannel, SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command, vector<char> result)
 {
     vector<char> response(8,0);
 
@@ -106,11 +106,17 @@ void SendResponse(SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command
 
     WriteToGuest(
         socketAdmin->GetPseudoDevice(),
-        UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL,
+        logicalChannel,
         response);
 }
 
-void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer, IoDeviceCreator *ioDeviceCreator)
+static int IsControlChannel(unsigned int channelId)
+{
+    return ((channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL) ||
+            (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL_1));
+}
+
+void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, vector<char> &buffer, IoDeviceCreator *ioDeviceCreator)
 {
     if (buffer.size() != 2)
     {
@@ -132,7 +138,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer, IoDevic
     {
         result[0] = 0; // We do not allow the guest to handle the LAN socket -> fake success results
     }
-    else if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
+    else if (IsControlChannel(commandLogicalChannel))
     {
         result[0] = -1; // We do not allow the guest to handle the control channel -> return a failure
     }
@@ -166,7 +172,7 @@ void HandleSocketCommand(SocketAdmin *socketAdmin, vector<char> &buffer, IoDevic
     // Debug_LOG_INFO("Handle socket command: result:%d\n", result);
 
     //SendResponse(socketAdmin, command, PARAM(result, result < 0 ? 1 : 0));
-    SendResponse(socketAdmin, command, result);
+    SendResponse(logicalChannel, socketAdmin, command, result);
 }
 
 static bool KeepFromGuestThreadAlive = true;
@@ -199,10 +205,10 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, I
                 //dumpFrame(&buffer[0], readBytes);
                 buffer.resize(readBytes);
 
-                if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
+                if (IsControlChannel(logicalChannel))
                 {
                     // Handle the commands arriving on the control channel
-                    HandleSocketCommand(socketAdmin, buffer, ioDeviceCreator);
+                    HandleSocketCommand(logicalChannel, socketAdmin, buffer, ioDeviceCreator);
                 }
                 else
                 {
