@@ -313,7 +313,7 @@ int main(int argc, const char *argv[])
     	use_pico = atoi(argv[5]);
     }
 
-    int use_tap =1;
+    int use_tap = 0;
     if(argc > 6)
     {
     	use_tap = atoi(argv[6]);
