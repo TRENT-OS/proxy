@@ -79,21 +79,18 @@ void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChan
 
 void SendResponse(unsigned int logicalChannel, SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command, vector<char> result)
 {
-    vector<char> response(8,0);
-
+    vector<char> response(2,0);
 
     if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
     {
         response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN_CNF);
     }
-
     else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
     {
+        response.resize(8);
     	response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC_CNF);
     	memcpy(&response[2],&result[1],6);
-
     }
-
     else
     {
         response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE_CNF);
@@ -149,6 +146,7 @@ void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, 
         {
         	Debug_LOG_INFO("entry Activate Socket\n");
         	result[0] = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN, ioDeviceCreator->Create());
+                result[0] = result[0] < 0 ? 1 : 0;
         	Debug_LOG_INFO("exit Activate Socket\n");
         }
         else if(command ==UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE )
