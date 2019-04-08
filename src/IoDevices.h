@@ -13,6 +13,7 @@ class OutputDevice
     public:
     virtual int Write(std::vector<char> buf) = 0;
     virtual int Close() = 0;
+    virtual int getMac(const char* name,char *mac) =0;
 };
 
 class InputDevice
@@ -20,6 +21,7 @@ class InputDevice
     public:
     virtual int Read(std::vector<char> &buf) = 0;
     virtual int Close() = 0;
+
 };
 
 // Used by SocketAdmin.cpp. Up to now represents a Linux socket. Later on: wrapper for TUN interface; PICO socket.
@@ -54,6 +56,10 @@ class OutputLogger : public OutputDevice
     {
         return 0;
     }
+    int getMac(const char* name,char *mac)
+    {
+      return 0;
+    }
 };
 
 class DeviceReader : public InputDevice
@@ -70,6 +76,7 @@ class DeviceReader : public InputDevice
     {
         return close(fd);
     }
+
 
     private:
     int fd;
@@ -88,6 +95,10 @@ class DeviceWriter : public OutputDevice
     int Close()
     {
         return close(fd);
+    }
+    int getMac(const char* name,char *mac)
+    {
+      return 0;
     }
 
     private:

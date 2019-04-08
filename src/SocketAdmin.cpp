@@ -5,11 +5,22 @@
 #include "MqttCloud.h"
 #include "utils.h"
 
+extern __thread int in_the_stack;
+extern int use_pico;
 void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
-    size_t bufSize = 256;
+
+    size_t bufSize = 1024;    //256;
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
+    if(use_pico)
+    {
+    	in_the_stack=0;
+    }
+    else
+    {
+    	in_the_stack=1;
+    }
     GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
 
     if (!guestConnector.IsOpen())
@@ -71,7 +82,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 
     Debug_LOG_INFO("ToGuestThread[%1d]: closing socket\n", logicalChannel);
 
-    if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL)
+    if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL) // TODO: remove (there is no control channel thread any more)
     {
         Debug_LOG_ERROR("ToGuestThread[%1d]: Unexpected stop of control channel thread !!!!!\n", logicalChannel);
     }
@@ -107,6 +118,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 // - from the LAN server: wants to activate a newly created client socket
 int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
 {
+
     // Check the logical channel is valid
     if (logicalChannel >= UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
@@ -121,20 +133,24 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
         return -1;
     }
 
+
     int result = -1;
 
     lock.lock();
 
     if (guestListeners.GetListener(logicalChannel) == nullptr)
     {
+
         result = ioDevice->Create();
+
         if (result >= 0)
         {
             // Store the io device;
             ioDevices[logicalChannel] = ioDevice;
 
             // Reset the close requested flag.
-            closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
+          	closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
+
 
             // Register socket in GuestListeners
             guestListeners.SetListener(logicalChannel, ioDevice->GetOutputDevice());
@@ -142,6 +158,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
             // Create thread
             toGuestThreads[logicalChannel] =
             thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), ioDevice->GetInputDevice()};
+
         }
         else
         {
