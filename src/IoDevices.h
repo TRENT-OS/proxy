@@ -28,6 +28,7 @@ class InputDevice
 class IoDevice
 {
     public:
+    // Return value = success indication of creation
     virtual int Create() = 0;
     virtual OutputDevice *GetOutputDevice() = 0;
     virtual InputDevice *GetInputDevice() = 0;

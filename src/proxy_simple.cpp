@@ -153,6 +153,7 @@ void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, 
         {
             socketAdmin->RequestClose(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
             result[0] = 0;
+            /* The reason for this is not 100% known; at the time it seemed more stable to do it. */
             std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));
         }
         else if(command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
@@ -185,6 +186,8 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, I
     string s = "FromGuestThread";
 
     Debug_LOG_INFO("FromGuestThread: starting.\n");
+
+    /* Why is this necessary ? */
     if(use_pico ==1)
     {
     	in_the_stack =0;             // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
@@ -208,6 +211,11 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, I
                 {
                     // Handle the commands arriving on the control channel
                     HandleSocketCommand(logicalChannel, socketAdmin, buffer, ioDeviceCreator);
+#if 0
+                    /* The new generic command interface. */
+                    vector<char> commandResult = socketAdmin->ExecuteCommand(logicalChannel, buffer);
+                    /* Write result payload to guest. */
+#endif
                 }
                 else
                 {
@@ -326,6 +334,7 @@ int main(int argc, const char *argv[])
         use_pico,
         use_tap);
 
+    /* TODO: why is this called not checking command line arguments? */
 	pico_wrapper_start();
 
     thread *pPico_tick = NULL;
@@ -334,9 +343,10 @@ int main(int argc, const char *argv[])
   		pPico_tick = new thread{PicoTickThread};
 	}
 
-
+    /* TBD: is this for overloading / redirecting the socket function calls for PICO TCP? */
 	in_the_stack =1;       // it must be 1 for host system = linux
 
+    /* Shared resource used because multithreaded access to pseudodevice not working. With QEMU using sockets: may not be needed any more.*/
     SharedResource<string> pseudoDevice{&pseudoDeviceName};
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
     if (!guestConnector.IsOpen())

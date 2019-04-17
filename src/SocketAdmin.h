@@ -30,6 +30,8 @@ class SocketAdmin
     OutputDevice *GetSocket(unsigned int logicalChannel) const;
     void SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer);
     SharedResource<string> *GetPseudoDevice() const { return pseudoDevice; }
+
+    /* These two members are the result of integration experience: use case: connection closed by cloud server. */
     bool CloseWasRequested(unsigned int logicalChannel);
     void RequestClose(unsigned int logicalChannel);
 

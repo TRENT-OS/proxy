@@ -35,6 +35,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
     {
         while (true)
         {
+            /* This is a blocking call with a timeout. */
             readBytes = socket->Read(buffer);
 
             if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
@@ -138,6 +139,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
 
     lock.lock();
 
+    /* Implicit check if the thread for this logical channel is already existing. */
     if (guestListeners.GetListener(logicalChannel) == nullptr)
     {
 
