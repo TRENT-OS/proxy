@@ -119,6 +119,10 @@ public:
     	    return 0;
 
       }
+    std::vector<char> HandlePayload(vector<char> payload)
+    {
+        return payload;
+    }
 
     ~Tap()
       {

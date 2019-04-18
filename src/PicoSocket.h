@@ -104,6 +104,11 @@ class PicoSocket : public InputDevice, public OutputDevice
       return 0;
     }
 
+    std::vector<char> HandlePayload(vector<char> payload)
+    {
+        return payload;
+    }
+
     private:
     int sockfd;
 

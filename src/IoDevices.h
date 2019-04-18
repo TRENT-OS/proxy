@@ -13,6 +13,7 @@ class OutputDevice
     public:
     virtual int Write(std::vector<char> buf) = 0;
     virtual int Close() = 0;
+    virtual std::vector<char> HandlePayload(vector<char> payload) = 0;
     virtual int getMac(const char* name,char *mac) =0;
 };
 
@@ -61,6 +62,10 @@ class OutputLogger : public OutputDevice
     {
       return 0;
     }
+    std::vector<char> HandlePayload(vector<char> payload)
+    {
+        return payload;
+    }
 };
 
 class DeviceReader : public InputDevice
@@ -100,6 +105,11 @@ class DeviceWriter : public OutputDevice
     int getMac(const char* name,char *mac)
     {
       return 0;
+    }
+
+    std::vector<char> HandlePayload(vector<char> payload)
+    {
+        return payload;
     }
 
     private:
