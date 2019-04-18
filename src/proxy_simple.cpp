@@ -116,63 +116,70 @@ static int IsControlChannel(unsigned int channelId)
 
 void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, vector<char> &buffer, IoDeviceCreator *ioDeviceCreator)
 {
-    if (buffer.size() != 2)
+    if (IsControlChannel(logicalChannel))
     {
-        Debug_LOG_ERROR("FromGuestThread: incoming socket command with wrong length.\n");
-        return;
-    }
-
-
-    UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
-    unsigned int commandLogicalChannel = buffer[1];
-    //int result;
-    vector<char> result(7,0);
-
-    Debug_LOG_INFO("Handle socket command: cmd: %s channel: %d\n",
-        UartSocketCommand(command).c_str(),
-        commandLogicalChannel);
-
-    if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
-    {
-        result[0] = 0; // We do not allow the guest to handle the LAN socket -> fake success results
-    }
-    else if (IsControlChannel(commandLogicalChannel))
-    {
-        result[0] = -1; // We do not allow the guest to handle the control channel -> return a failure
-    }
-    else if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
-    {
-        if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
+        if (buffer.size() != 2)
         {
-        	Debug_LOG_INFO("entry Activate Socket\n");
-        	result[0] = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN, ioDeviceCreator->Create());
-                result[0] = result[0] < 0 ? 1 : 0;
-        	Debug_LOG_INFO("exit Activate Socket\n");
-        }
-        else if(command ==UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE )
-        {
-            socketAdmin->RequestClose(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
-            result[0] = 0;
-            /* The reason for this is not 100% known; at the time it seemed more stable to do it. */
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));
-        }
-        else if(command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
-        {
-             // handle get mac here.
-        	OutputDevice *socket = socketAdmin->GetSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
-        	vector<char> mac(6,0);
-        	socket->getMac("tap0",&mac[0]);
-        	printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
-            result[0] = 0;
-            memcpy(&result[1],&mac[0],6);
+            Debug_LOG_ERROR("FromGuestThread: incoming socket command with wrong length.\n");
+            return;
         }
 
+        UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
+        unsigned int commandLogicalChannel = buffer[1];
+        //int result;
+        vector<char> result(7,0);
+
+        Debug_LOG_INFO("Handle socket command: cmd: %s channel: %d\n",
+            UartSocketCommand(command).c_str(),
+            commandLogicalChannel);
+
+        if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
+        {
+            result[0] = 0; // We do not allow the guest to handle the LAN socket -> fake success results
+        }
+        else if (IsControlChannel(commandLogicalChannel))
+        {
+            result[0] = -1; // We do not allow the guest to handle the control channel -> return a failure
+        }
+        else if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+        {
+            if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
+            {
+                    Debug_LOG_INFO("entry Activate Socket\n");
+                    result[0] = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN, ioDeviceCreator->Create());
+                    result[0] = result[0] < 0 ? 1 : 0;
+                    Debug_LOG_INFO("exit Activate Socket\n");
+            }
+            else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE)
+            {
+                socketAdmin->RequestClose(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
+                result[0] = 0;
+                /* The reason for this is not 100% known; at the time it seemed more stable to do it. */
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));
+            }
+            else if(command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
+            {
+                 // handle get mac here.
+                    OutputDevice *socket = socketAdmin->GetSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
+                    vector<char> mac(6,0);
+                    socket->getMac("tap0",&mac[0]);
+                    printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+                result[0] = 0;
+                memcpy(&result[1],&mac[0],6);
+            }
+        }
+        // Debug_LOG_INFO("Handle socket command: result:%d\n", result);
+
+        //SendResponse(socketAdmin, command, PARAM(result, result < 0 ? 1 : 0));
+        SendResponse(logicalChannel, socketAdmin, command, result);
     }
-
-    // Debug_LOG_INFO("Handle socket command: result:%d\n", result);
-
-    //SendResponse(socketAdmin, command, PARAM(result, result < 0 ? 1 : 0));
-    SendResponse(logicalChannel, socketAdmin, command, result);
+    else
+    {   // all the code above should at a certain point move to some payload
+        // handler and leave in this 2 lines the actual implementation
+        OutputDevice *socket = socketAdmin->GetSocket(logicalChannel);
+        socketAdmin->SendDataToSocket(logicalChannel,
+                                      socket->HandlePayload(buffer));
+    }
 }
 
 static bool KeepFromGuestThreadAlive = true;
@@ -206,22 +213,11 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, I
             {
                 //dumpFrame(&buffer[0], readBytes);
                 buffer.resize(readBytes);
-
-                if (IsControlChannel(logicalChannel))
-                {
-                    // Handle the commands arriving on the control channel
-                    HandleSocketCommand(logicalChannel, socketAdmin, buffer, ioDeviceCreator);
-#if 0
-                    /* The new generic command interface. */
-                    vector<char> commandResult = socketAdmin->ExecuteCommand(logicalChannel, buffer);
-                    /* Write result payload to guest. */
-#endif
-                }
-                else
-                {
-                    // For LAN, WAN and TAP: write the received data to the according socket
-                    socketAdmin->SendDataToSocket(logicalChannel, buffer);
-                }
+                // Handle the commands arriving on the control channel
+                HandleSocketCommand(logicalChannel,
+                                    socketAdmin,
+                                    buffer,
+                                    ioDeviceCreator);
             }
             else
             {
