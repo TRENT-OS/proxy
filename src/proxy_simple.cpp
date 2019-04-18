@@ -82,8 +82,10 @@ void SendResponse(unsigned int logicalChannel, SocketAdmin *socketAdmin, UartSoc
     vector<char> response(2,0);
 
     if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
+
     {
         response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN_CNF);
+        printf(" Tx Send response =%d\n",response[0]);
     }
     else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
     {
@@ -111,7 +113,8 @@ void SendResponse(unsigned int logicalChannel, SocketAdmin *socketAdmin, UartSoc
 static int IsControlChannel(unsigned int channelId)
 {
     return ((channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL) ||
-            (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL_1));
+            (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL_1) ||
+            (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_NW));
 }
 
 void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, vector<char> &buffer, IoDeviceCreator *ioDeviceCreator)
@@ -155,13 +158,31 @@ void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, 
             result[0] = 0;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));
         }
+    }
+
+    else if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
+    {
+        if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
+        {
+            Debug_LOG_INFO("entry Activate Socket\n");
+            result[0] = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW, ioDeviceCreator->Create());
+                result[0] = result[0] < 0 ? 1 : 0;
+            Debug_LOG_INFO("exit Activate Socket\n");
+        }
+        else if(command ==UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE )
+        {
+            socketAdmin->RequestClose(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW);
+            result[0] = 0;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));
+        }
         else if(command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
         {
+            printf("Get mac  command rx:\n");
              // handle get mac here.
-        	OutputDevice *socket = socketAdmin->GetSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
-        	vector<char> mac(6,0);
-        	socket->getMac("tap0",&mac[0]);
-        	printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+            OutputDevice *socket = socketAdmin->GetSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW);
+            vector<char> mac(6,0);
+            socket->getMac("tap0",&mac[0]);
+            printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
             result[0] = 0;
             memcpy(&result[1],&mac[0],6);
         }

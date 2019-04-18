@@ -10,7 +10,7 @@ extern int use_pico;
 void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
 
-    size_t bufSize = 1024;    //256;
+    size_t bufSize = 2048;    //256;
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
     if(use_pico)
@@ -45,6 +45,15 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
                    break;
                 }
             }
+            else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
+            {
+                if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW))
+                {
+                   // Leave the endless loop in case a close of the wan
+                   break;
+                }
+
+             }
 
             if (readBytes > 0)
             {
@@ -94,6 +103,11 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
     {
         Debug_LOG_INFO("ToGuestThread[%1d]: closing the current LAN client connection\n", logicalChannel);
     }
+    else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
+    {
+        Debug_LOG_INFO("ToGuestThread[%1d]: closing the current NW client connection\n", logicalChannel);
+    }
+
 
     if (socketAdmin->GetSocket(logicalChannel) != nullptr)
     {
@@ -101,6 +115,14 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
         if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
         {
             if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
+            {
+                unsolicited = false;
+            }
+        }
+
+        if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
+        {
+            if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW))
             {
                 unsolicited = false;
             }
@@ -150,7 +172,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
 
             // Reset the close requested flag.
           	closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
-
+            closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW] = false;
 
             // Register socket in GuestListeners
             guestListeners.SetListener(logicalChannel, ioDevice->GetOutputDevice());
@@ -252,7 +274,7 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
 
 bool SocketAdmin::CloseWasRequested(unsigned int logicalChannel)
 {
-    if (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+    if ((logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN) || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW))
     {
         return false;
     }
@@ -266,7 +288,7 @@ bool SocketAdmin::CloseWasRequested(unsigned int logicalChannel)
 
 void SocketAdmin::RequestClose(unsigned int logicalChannel)
 {
-    if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+    if ((logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN) || (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW))
     {
         lock.lock();
         closeWasRequested[logicalChannel] = true;
