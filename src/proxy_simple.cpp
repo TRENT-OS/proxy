@@ -112,8 +112,8 @@ void SendResponse(unsigned int logicalChannel, SocketAdmin *socketAdmin, UartSoc
 
 static int IsControlChannel(unsigned int channelId)
 {
-    return ((channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL) ||
-            (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL_1) ||
+    return ((channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN_CONTROL_CHANNEL) ||
+            (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN_CONTROL_CHANNEL) ||
             (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_NW));
 }
 

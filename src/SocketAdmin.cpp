@@ -92,7 +92,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 
     Debug_LOG_INFO("ToGuestThread[%1d]: closing socket\n", logicalChannel);
 
-    if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_CHANNEL) // TODO: remove (there is no control channel thread any more)
+    if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN_CONTROL_CHANNEL) // TODO: remove (there is no control channel thread any more)
     {
         Debug_LOG_ERROR("ToGuestThread[%1d]: Unexpected stop of control channel thread !!!!!\n", logicalChannel);
     }
