@@ -40,7 +40,7 @@ using namespace std;
 class Tap : public InputDevice, public OutputDevice
 {
 public:
-	Tap(int fd)
+      Tap(int fd)
       {
 		tapfd = fd;
       }
@@ -119,9 +119,26 @@ public:
     	    return 0;
 
       }
-    std::vector<char> HandlePayload(vector<char> payload)
+    std::vector<char> HandlePayload(vector<char> buffer)
     {
-        return payload;
+        UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
+        unsigned int commandLogicalChannel = buffer[1];
+        //int result;
+        vector<char> result(7,0);
+        Debug_LOG_DEBUG("%s:%d", __func__, __LINE__);
+
+        if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
+        {
+            Debug_LOG_DEBUG("%s:%d", __func__, __LINE__);
+            printf("Get mac  command rx:\n");
+             // handle get mac here.
+            vector<char> mac(6,0);
+            getMac("tap0",&mac[0]);
+            printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+            result[0] = 0;
+            memcpy(&result[1],&mac[0],6);
+        }
+        return result;
     }
 
     ~Tap()
