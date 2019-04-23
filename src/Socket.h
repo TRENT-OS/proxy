@@ -89,11 +89,6 @@ class Socket : public InputDevice, public OutputDevice
 
     bool IsOpen() const { return sockfd >= 0;}
 
-    int getMac(const char* name,char *mac)
-    {
-      return 0;
-    }
-
     std::vector<char> HandlePayload(vector<char> payload)
     {
         return payload;

@@ -14,7 +14,6 @@ class OutputDevice
     virtual int Write(std::vector<char> buf) = 0;
     virtual int Close() = 0;
     virtual std::vector<char> HandlePayload(vector<char> payload) = 0;
-    virtual int getMac(const char* name,char *mac) =0;
 };
 
 class InputDevice
@@ -58,12 +57,9 @@ class OutputLogger : public OutputDevice
     {
         return 0;
     }
-    int getMac(const char* name,char *mac)
-    {
-      return 0;
-    }
     std::vector<char> HandlePayload(vector<char> payload)
     {
+        printf("%s:%d", __func__, __LINE__);
         return payload;
     }
 };
@@ -102,13 +98,10 @@ class DeviceWriter : public OutputDevice
     {
         return close(fd);
     }
-    int getMac(const char* name,char *mac)
-    {
-      return 0;
-    }
 
     std::vector<char> HandlePayload(vector<char> payload)
     {
+        printf("%s:%d", __func__, __LINE__);
         return payload;
     }
 
