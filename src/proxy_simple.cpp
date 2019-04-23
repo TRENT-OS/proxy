@@ -144,48 +144,31 @@ void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, 
         {
             result[0] = -1; // We do not allow the guest to handle the control channel -> return a failure
         }
-        else if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
+        else
         {
+            /* Generic handling fo all types of control channels*/
             if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
             {
-                    Debug_LOG_INFO("entry Activate Socket\n");
-                    result[0] = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN, ioDeviceCreator->Create());
-                    result[0] = result[0] < 0 ? 1 : 0;
-                    Debug_LOG_INFO("exit Activate Socket\n");
+                Debug_LOG_INFO("entry Activate Socket\n");
+                result[0] = socketAdmin->ActivateSocket(commandLogicalChannel, ioDeviceCreator->Create());
+                result[0] = result[0] < 0 ? 1 : 0;
+                Debug_LOG_INFO("exit Activate Socket\n");
             }
             else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE)
             {
-                socketAdmin->RequestClose(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN);
+                socketAdmin->RequestClose(commandLogicalChannel);
                 result[0] = 0;
                 /* The reason for this is not 100% known; at the time it seemed more stable to do it. */
                 std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));
             }
-        }
-        else if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
-        {
-            if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
+            else
             {
-                Debug_LOG_INFO("entry Activate Socket\n");
-                result[0] = socketAdmin->ActivateSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW, ioDeviceCreator->Create());
-                    result[0] = result[0] < 0 ? 1 : 0;
-                Debug_LOG_INFO("exit Activate Socket\n");
-            }
-            else if(command ==UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE )
-            {
-                socketAdmin->RequestClose(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW);
-                result[0] = 0;
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));
-            }
-            else if(command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
-            {
-                printf("Get mac  command rx:\n");
-                 // handle get mac here.
-                OutputDevice *socket = socketAdmin->GetSocket(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW);
-                vector<char> mac(6,0);
-                socket->getMac("tap0",&mac[0]);
-                printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
-                result[0] = 0;
-            memcpy(&result[1],&mac[0],6);
+                /* handle payload as command */
+                OutputDevice *socket = socketAdmin->GetSocket(commandLogicalChannel);
+                if (socket)
+                {
+                    result = socket->HandlePayload(buffer);
+                }
             }
         }
         // Debug_LOG_INFO("Handle socket command: result:%d\n", result);
@@ -197,8 +180,14 @@ void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, 
     {   // all the code above should at a certain point move to some payload
         // handler and leave in this 2 lines the actual implementation
         OutputDevice *socket = socketAdmin->GetSocket(logicalChannel);
-        socketAdmin->SendDataToSocket(logicalChannel,
-                                      socket->HandlePayload(buffer));
+        if (socket)
+        {
+            socketAdmin->SendDataToSocket(logicalChannel, buffer);
+        }
+        else
+        {
+            Debug_LOG_ERROR("%s: socket object not found channel %d", __func__, logicalChannel);
+        }
     }
 }
 
