@@ -6,15 +6,13 @@
 #include "MqttCloud.h"
 #include "SocketAdmin.h"
 #include "LanServerSocket.h"
-#include "CloudSocketCreator.h"
-#include "PicoSocket.h"
-#include "PicoCloudSocketCreator.h"
 #include "LibDebug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
-#include "TapSocketCreator.h"
 #include <chrono>
 #include <thread>
+
+#include "SocketCreators.h"
 
 int use_pico =0; // By default disable picotcp
 extern __thread int in_the_stack;
@@ -117,8 +115,20 @@ static int IsControlChannel(unsigned int channelId)
             (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CONTROL_NW));
 }
 
-void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, vector<char> &buffer, IoDeviceCreator *ioDeviceCreator)
+static int IsDataChannel(unsigned int channelId)
 {
+    return ((channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN) ||
+            (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN) ||
+            (channelId == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW));
+}
+
+void HandleSocketCommand(unsigned int logicalChannel,
+                         SocketAdmin *socketAdmin,
+                         vector<char> &buffer,
+                         SocketCreators* socketCreators)
+{
+    Debug_LOG_DEBUG("%s: Handling channel %d", __func__, logicalChannel);
+
     if (IsControlChannel(logicalChannel))
     {
         if (buffer.size() != 2)
@@ -150,7 +160,8 @@ void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, 
             if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
             {
                 Debug_LOG_INFO("entry Activate Socket\n");
-                result[0] = socketAdmin->ActivateSocket(commandLogicalChannel, ioDeviceCreator->Create());
+                result[0] = socketAdmin->ActivateSocket(commandLogicalChannel,
+                                                        socketCreators->getCreator(commandLogicalChannel)->Create());
                 result[0] = result[0] < 0 ? 1 : 0;
                 Debug_LOG_INFO("exit Activate Socket\n");
             }
@@ -176,7 +187,7 @@ void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, 
         //SendResponse(socketAdmin, command, PARAM(result, result < 0 ? 1 : 0));
         SendResponse(logicalChannel, socketAdmin, command, result);
     }
-    else
+    else if (IsDataChannel(logicalChannel))
     {   // all the code above should at a certain point move to some payload
         // handler and leave in this 2 lines the actual implementation
         OutputDevice *socket = socketAdmin->GetSocket(logicalChannel);
@@ -189,12 +200,28 @@ void HandleSocketCommand(unsigned int logicalChannel, SocketAdmin *socketAdmin, 
             Debug_LOG_ERROR("%s: socket object not found channel %d", __func__, logicalChannel);
         }
     }
+    else
+    {   // Command Channel
+        OutputDevice *socket = socketAdmin->GetSocket(logicalChannel);
+        if (!socket)
+        {   // if socket was not created than let's do it by activating it
+            if (!socketAdmin->ActivateSocket(logicalChannel,
+                                             socketCreators->getCreator(logicalChannel)->Create()))
+            {
+                socket = socketAdmin->GetSocket(logicalChannel);
+                Debug_ASSERT(socket != NULL);
+            }
+        }
+        WriteToGuest(socketAdmin->GetPseudoDevice(),
+                     logicalChannel,
+                     socket->HandlePayload(buffer));
+    }
 }
 
 static bool KeepFromGuestThreadAlive = true;
 
 // "RX" only = it receives all data from the guest (=seL4) and a) puts it into the appropriate socket or b) executes the received control command
-void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, IoDeviceCreator *ioDeviceCreator)
+void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, SocketCreators* socketCreators)
 {
     size_t bufSize = 1024;
     vector<char> buffer(bufSize);
@@ -226,12 +253,12 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, I
                 HandleSocketCommand(logicalChannel,
                                     socketAdmin,
                                     buffer,
-                                    ioDeviceCreator);
+                                    socketCreators);
             }
             else
             {
-                // Not used because: not meaningful "Resource temporarily unavailable" 
-                //Debug_LOG_ERROR("GuestConnectorFromGuest: guest read failed.\n");
+                // Not used because: not meaningful "Resource temporarily unavailable"
+                // Debug_LOG_ERROR("GuestConnectorFromGuest: guest read failed.\n");
             }
         }
     }
@@ -367,26 +394,13 @@ int main(int argc, const char *argv[])
    // a) receiving all hdlc frames and distributing them to the sockets
    // b) handling the socket admin commands from the guest
 
-   IoDeviceCreator *pCreator;
-   if (use_pico)
-   {
-	   pCreator = new PicoCloudSocketCreator{port, hostName};
-   }
-   else if(use_tap == 0 &&  use_pico ==0)
-   {
-	   pCreator = new CloudSocketCreator{port, hostName};
-
-   }
-   else
-   {
-	   pCreator = new TapSocketCreator("tap0");
-   }
+   SocketCreators socketCreators(hostName, port, use_pico, use_tap);
 
    thread fromGuestThread{
 	   FromGuestThread,
 	   &guestConnector,
 	   &socketAdmin,
-	   pCreator};
+	   &socketCreators};
 
     // Handle the LAN socket
     LanServer(&socketAdmin, lanPort);
