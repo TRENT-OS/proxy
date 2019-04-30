@@ -39,7 +39,7 @@ public:
         creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW] =
                     creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN];
         creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM] =
-                new NvmSocketCreator();
+                new NvmSocketCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM);
     }
 
     ~SocketCreators()

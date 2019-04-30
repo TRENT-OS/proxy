@@ -11,9 +11,9 @@ using namespace std;
 class NvmSocketCreator : public IoDeviceCreator
 {
     private:
-
+        unsigned m_chanNum;
     public:
-    NvmSocketCreator()
+    NvmSocketCreator(unsigned chanNum) : m_chanNum(chanNum)
     {
     }
 
@@ -23,6 +23,6 @@ class NvmSocketCreator : public IoDeviceCreator
 
     IoDevice *Create()
     {
-        return new NvmSocket();
+        return new NvmSocket(m_chanNum);
     }
 };
