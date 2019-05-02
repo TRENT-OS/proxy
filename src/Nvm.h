@@ -60,7 +60,7 @@ public:
 
     std::vector<char> HandlePayload(vector<char> buffer)
     {
-        vector<char> response;
+        vector<char> response(6);
         Debug_LOG_TRACE("%s: printing buffer...", __func__);
 
         for (unsigned i = 0; i < buffer.size(); i++)
@@ -71,10 +71,10 @@ public:
 
         response[0] = CMD_WRITE;
         response[1] = 0;
-        response[2] = buffer[1];
-        response[3] = buffer[2];
-        response[4] = buffer[3];
-        response[5] = buffer[4];
+        response[2] = buffer[5];
+        response[3] = buffer[6];
+        response[4] = buffer[7];
+        response[5] = buffer[8];
 
         return response;
     }
