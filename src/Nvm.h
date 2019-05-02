@@ -13,6 +13,11 @@
 #include "LibDebug/Debug.h"
 #include <ios>
 
+#define CMD_GET_SIZE    0
+#define CMD_WRITE       1
+#define CMD_READ        2
+
+
 using namespace std;
 
 class Nvm : public InputDevice, public OutputDevice
@@ -55,6 +60,7 @@ public:
 
     std::vector<char> HandlePayload(vector<char> buffer)
     {
+        vector<char> response;
         Debug_LOG_TRACE("%s: printing buffer...", __func__);
 
         for (unsigned i = 0; i < buffer.size(); i++)
@@ -62,7 +68,15 @@ public:
             Debug_PRINTF(" %02x", buffer[i]);
         }
         Debug_PRINTFLN("%s","");
-        return buffer;
+
+        response[0] = CMD_WRITE;
+        response[1] = 0;
+        response[2] = buffer[1];
+        response[3] = buffer[2];
+        response[4] = buffer[3];
+        response[5] = buffer[4];
+
+        return response;
     }
 
     ~Nvm()
