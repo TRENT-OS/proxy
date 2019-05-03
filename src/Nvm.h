@@ -60,23 +60,64 @@ public:
 
     std::vector<char> HandlePayload(vector<char> buffer)
     {
-        vector<char> response(6);
         Debug_LOG_TRACE("%s: printing buffer...", __func__);
 
         for (unsigned i = 0; i < buffer.size(); i++)
         {
-            Debug_PRINTF(" %02x", buffer[i]);
+            Debug_PRINTF(" %02x", (unsigned char)buffer[i]);
         }
         Debug_PRINTFLN("%s","");
 
-        response[0] = CMD_WRITE;
-        response[1] = 0;
-        response[2] = buffer[5];
-        response[3] = buffer[6];
-        response[4] = buffer[7];
-        response[5] = buffer[8];
+        switch (buffer[0])
+        {
+            case CMD_GET_SIZE:
+            {
+                vector<char> response(6);
 
-        return response;
+                response[0] = CMD_GET_SIZE;
+                response[1] = 0;
+                response[2] = 0;
+                response[3] = 0;
+                response[4] = 0x10;
+                response[5] = 0x00;
+
+                return response; 
+            }        
+            case CMD_WRITE:
+            {
+                vector<char> response(6);
+
+                response[0] = CMD_WRITE;
+                response[1] = 0;
+                response[2] = (unsigned char)buffer[5];
+                response[3] = (unsigned char)buffer[6];
+                response[4] = (unsigned char)buffer[7];
+                response[5] = (unsigned char)buffer[8];
+
+                return response;
+            }
+            case CMD_READ:
+            {
+                vector<char> response(1024);
+                int length = ((unsigned char)buffer[5] << 24) | ((unsigned char)buffer[6] << 16) | ((unsigned char)buffer[7] << 8) | ((unsigned char)buffer[8]);
+
+                response[0] = CMD_READ;
+                response[1] = 0;
+                response[2] = (unsigned char)buffer[5];
+                response[3] = (unsigned char)buffer[6];
+                response[4] = (unsigned char)buffer[7];
+                response[5] = (unsigned char)buffer[8];
+
+                for(int i = 0; i < length; i++){
+                    response[i+6] = i;
+                }
+
+                return response;
+            }
+            default:
+                vector<char> response(1024);
+                return response;
+        }
     }
 
     ~Nvm()
