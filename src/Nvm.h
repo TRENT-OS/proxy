@@ -20,7 +20,7 @@
 #define CMD_WRITE               1
 #define CMD_READ                2
 
-#define MEM_SIZE                4096
+#define MEM_SIZE                1000*4096
 
 #define MAX_MSG_LEN             1024
 #define RESP_HEADER_LEN         6
