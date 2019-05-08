@@ -20,7 +20,8 @@
 #define CMD_WRITE               1
 #define CMD_READ                2
 
-#define MEM_SIZE                1024*1024 //1 MB of memory
+#define DEFAULT_MEM_SIZE        1024*1024 //1 MB of memory
+#define CHAN_6_MEM_SIZE         128*1024 //128 kB of memory
 
 #define MAX_MSG_LEN             4096
 #define RESP_HEADER_LEN         6
@@ -51,6 +52,7 @@ class Nvm : public InputDevice, public OutputDevice
 {
 private:
     char m_filename[FILENAME_LEN];
+    size_t m_memorySize;
 
     void m_cpyIntToBuf(uint32_t integer, unsigned char* buf){
         buf[0] = (integer >> 24) & 0xFF;
@@ -82,15 +84,26 @@ public:
 
         Debug_LOG_INFO("\nFile opened succesfully!\n");
 
+        switch (chanNum)
+        {
+        case 6:
+            m_memorySize = CHAN_6_MEM_SIZE;
+            break;
+        
+        default:
+            m_memorySize = DEFAULT_MEM_SIZE;
+            break;
+        }
+
         file.seekg(0, file.end);
         int length = file.tellg();
         file.seekg(0, file.beg);
 
         if (length == 0){
             Debug_LOG_INFO("\nLength = 0, initializing!\n");
-            
-            char buffer[MEM_SIZE] = {0};
-            file.write(buffer,MEM_SIZE * sizeof(char));
+            for(int i = 0; i < m_memorySize; i++){
+                file.put(0);
+            }
         }
 
         file.close();
@@ -132,7 +145,7 @@ public:
             {
                 data[RESP_COMM_INDEX] = CMD_GET_SIZE;
                 data[RESP_RETVAL_INDEX] = RET_OK;
-                m_cpyIntToBuf(MEM_SIZE, (unsigned char*)&data[RESP_BYTES_INDEX]);
+                m_cpyIntToBuf(m_memorySize, (unsigned char*)&data[RESP_BYTES_INDEX]);
 
                 for(int i = 0; i < RESP_HEADER_LEN; i++){
                     response.push_back(data[i]);
