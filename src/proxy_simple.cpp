@@ -223,7 +223,7 @@ static bool KeepFromGuestThreadAlive = true;
 // "RX" only = it receives all data from the guest (=seL4) and a) puts it into the appropriate socket or b) executes the received control command
 void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, SocketCreators* socketCreators)
 {
-    size_t bufSize = 1024;
+    size_t bufSize = 4096;
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
     string s = "FromGuestThread";

@@ -4,7 +4,7 @@
 #include "CloudSocketCreator.h"
 #include "PicoCloudSocketCreator.h"
 #include "TapSocketCreator.h"
-//#include "NvmSocketCreator.h"
+#include "NvmSocketCreator.h"
 
 #include <map>
 
@@ -38,8 +38,8 @@ public:
         }
         creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW] =
                     creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN];
-//        creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM] =
-//                new NvmSocketCreator();
+        creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM] =
+                new NvmSocketCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM);
     }
 
     ~SocketCreators()
