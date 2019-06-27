@@ -159,21 +159,20 @@ public:
             {
                 std::copy(buffer.begin(), buffer.end(), data);
 
+                data[RESP_COMM_INDEX] = CMD_WRITE;
+                m_cpyIntToBuf(int(0), (unsigned char*)&data[RESP_BYTES_INDEX]);
+
                 //check if the address is outside of the memory bounds
                 //if it is read 0 bytes
                 if (address > m_memorySize){
                     Debug_LOG_ERROR("Request size is outside of memory bounds! Adress: %d, Length: %d, Memory size: %lu", address, length, m_memorySize);
-                    data[RESP_COMM_INDEX] = CMD_WRITE;
                     data[RESP_RETVAL_INDEX] = RET_ADDR_OUT_OF_BOUNDS;
-                    m_cpyIntToBuf(0, (unsigned char*)&data[RESP_BYTES_INDEX]);
                 }
                 //check if length exceeds the available room (from specified address to the end)
                 //if it does read just the readable amount of bytes
                 else if (length > (m_memorySize - address)){
                     Debug_LOG_ERROR("Address outside of memory bounds! Adress: %d, Memory size: %lu", address, m_memorySize);
-                    data[RESP_COMM_INDEX] = CMD_WRITE;
                     data[RESP_RETVAL_INDEX] = RET_LEN_OUT_OF_BOUNDS;
-                    m_cpyIntToBuf(0, (unsigned char*)&data[RESP_BYTES_INDEX]);
                 }
                 else{
                     fstream file (m_filename, ios::in | ios::out | std::ios::binary);
@@ -184,15 +183,12 @@ public:
                         uint32_t written_length = (uint32_t)file.tellp() - pos_before;
                         file.close();
 
-                        data[RESP_COMM_INDEX] = CMD_WRITE;
                         data[RESP_RETVAL_INDEX] = written_length == length ? RET_OK : RET_WRITE_ERR;
                         m_cpyIntToBuf(written_length, (unsigned char*)&data[RESP_BYTES_INDEX]);
                     }
                     else{
                         Debug_LOG_ERROR("Could not open file: %s", m_filename);
-                        data[RESP_COMM_INDEX] = CMD_WRITE;
                         data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;
-                        m_cpyIntToBuf(int(0), (unsigned char*)&data[RESP_BYTES_INDEX]);
                     }
                 }
 
@@ -205,21 +201,20 @@ public:
             case CMD_READ:
             {   
                 uint32_t read_length = 0;
+                data[RESP_COMM_INDEX] = CMD_READ;
+                m_cpyIntToBuf(int(0), (unsigned char*)&data[RESP_BYTES_INDEX]);
+
                 //check if the address is outside of the memory bounds
                 //if it is read 0 bytes
                 if (address > m_memorySize){
                     Debug_LOG_ERROR("Request size is outside of memory bounds! Adress: %d, Length: %d, Memory size: %lu", address, length, m_memorySize);
-                    data[RESP_COMM_INDEX] = CMD_READ;
                     data[RESP_RETVAL_INDEX] = RET_ADDR_OUT_OF_BOUNDS;
-                    m_cpyIntToBuf(0, (unsigned char*)&data[RESP_BYTES_INDEX]);
                 }
                 //check if length exceeds the available room (from specified address to the end)
                 //if it does read just the readable amount of bytes
                 else if (length > (m_memorySize - address)){
                     Debug_LOG_ERROR("Address outside of memory bounds! Adress: %d, Memory size: %lu", address, m_memorySize);
-                    data[RESP_COMM_INDEX] = CMD_READ;
                     data[RESP_RETVAL_INDEX] = RET_LEN_OUT_OF_BOUNDS;
-                    m_cpyIntToBuf(0, (unsigned char*)&data[RESP_BYTES_INDEX]);
                 }
                 else{
                     fstream file (m_filename, ios::in | ios::out | std::ios::binary);
@@ -230,15 +225,12 @@ public:
                         read_length = (uint32_t)file.tellp() - pos_before;
                         file.close();
 
-                        data[RESP_COMM_INDEX] = CMD_READ;
                         data[RESP_RETVAL_INDEX] = read_length == length ? RET_OK : RET_READ_ERR;
                         m_cpyIntToBuf(read_length, (unsigned char*)&data[RESP_BYTES_INDEX]);
                     }
                     else{
                         Debug_LOG_ERROR("Could not open file: %s", m_filename);
-                        data[RESP_COMM_INDEX] = CMD_READ;
-                        data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;
-                        m_cpyIntToBuf(int(0), (unsigned char*)&data[RESP_BYTES_INDEX]);                   
+                        data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;                  
                     }
                 }
                 
