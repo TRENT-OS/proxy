@@ -67,23 +67,21 @@ private:
         return (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | (buf[3]);
     }
 
-    bool m_checkMemoryBoundaries(int length, int address, char* error){
+    char m_checkMemoryBoundaries(uint32_t length, uint32_t address){
         //check if the address is outside of the memory bounds
         //if it is read 0 bytes
         if (address > m_memorySize){
             Debug_LOG_ERROR("Request size is outside of memory bounds! Adress: %d, Length: %d, Memory size: %lu", address, length, m_memorySize);
-            *error = RET_ADDR_OUT_OF_BOUNDS;
-            return false;
+            return RET_ADDR_OUT_OF_BOUNDS;
         }
         //check if length exceeds the available room (from specified address to the end)
         //if it does read just the readable amount of bytes
         else if (length > (m_memorySize - address)){
             Debug_LOG_ERROR("Address outside of memory bounds! Adress: %d, Memory size: %lu", address, m_memorySize);
-            *error = RET_LEN_OUT_OF_BOUNDS;
-            return false;
+            return RET_LEN_OUT_OF_BOUNDS;
         }
 
-        return true;
+        return RET_OK;
     }
 
     void m_handleGetSizeReq(char* data){
@@ -92,59 +90,62 @@ private:
         m_cpyIntToBuf(m_memorySize, (unsigned char*)&data[RESP_BYTES_INDEX]);
     }
 
-    void m_handleWriteReq(char* data, int length, int address){
+    void m_handleWriteReq(char* data, uint32_t length, uint32_t address){
         data[RESP_COMM_INDEX] = CMD_WRITE;
         m_cpyIntToBuf(0, (unsigned char*)&data[RESP_BYTES_INDEX]);
 
-        if(!m_checkMemoryBoundaries(length, address, &data[RESP_RETVAL_INDEX])){
+        char retValue = m_checkMemoryBoundaries(length, address);
+        if(retValue != RET_OK){
             Debug_LOG_ERROR("Memory boundaries check failed!");
+            data[RESP_RETVAL_INDEX] = retValue;
+            return;
         }
-        else{
-            fstream file (m_filename, ios::in | ios::out | std::ios::binary);
-            if(!file.is_open()){
-                Debug_LOG_ERROR("Could not open file: %s", m_filename);
-                data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;
-            }
-            else{
-                file.seekg(address, ios::beg);
-                uint32_t pos_before = (uint32_t)file.tellp();
-                file.write(&data[REQ_PAYLD_INDEX], length);
-                uint32_t written_length = (uint32_t)file.tellp() - pos_before;
-                file.close();
 
-                data[RESP_RETVAL_INDEX] = ((written_length == length) ? RET_OK : RET_WRITE_ERR);
-                m_cpyIntToBuf(written_length, (unsigned char*)&data[RESP_BYTES_INDEX]);
-            }
+        fstream file (m_filename, ios::in | ios::out | std::ios::binary);
+        if(!file.is_open()){
+            Debug_LOG_ERROR("Could not open file: %s", m_filename);
+            data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;
+            return;
         }
+
+        file.seekg(address, ios::beg);
+        uint32_t pos_before = (uint32_t)file.tellp();
+        file.write(&data[REQ_PAYLD_INDEX], length);
+        uint32_t written_length = (uint32_t)file.tellp() - pos_before;
+        file.close();
+
+        data[RESP_RETVAL_INDEX] = ((written_length == length) ? RET_OK : RET_WRITE_ERR);
+        m_cpyIntToBuf(written_length, (unsigned char*)&data[RESP_BYTES_INDEX]);
     }
 
-    int m_handleReadReq(char* data, int length, int address){
-        uint32_t read_length = 0;
+    uint32_t m_handleReadReq(char* data, uint32_t length, uint32_t address){
         data[RESP_COMM_INDEX] = CMD_READ;
         m_cpyIntToBuf(0, (unsigned char*)&data[RESP_BYTES_INDEX]);
 
-        if(!m_checkMemoryBoundaries(length, address, &data[RESP_RETVAL_INDEX])){
+        char retValue = m_checkMemoryBoundaries(length, address);
+        if(retValue != RET_OK){
             Debug_LOG_ERROR("Memory boundaries check failed!");
-        }
-        else{
-            fstream file (m_filename, ios::in | ios::out | std::ios::binary);
-            if(!file.is_open()){
-                Debug_LOG_ERROR("Could not open file: %s", m_filename);
-                data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;   
-            }
-            else{
-                file.seekg(address, ios::beg);
-                uint32_t pos_before = (uint32_t)file.tellp();
-                file.read(&data[RESP_PAYLD_INDEX], length);
-                read_length = (uint32_t)file.tellp() - pos_before;
-                file.close();
-
-                data[RESP_RETVAL_INDEX] = ((read_length == length) ? RET_OK : RET_READ_ERR);
-                m_cpyIntToBuf(read_length, (unsigned char*)&data[RESP_BYTES_INDEX]);               
-            }
+            data[RESP_RETVAL_INDEX] = retValue;
+            return 0;
         }
 
-        return read_length;
+        fstream file (m_filename, ios::in | ios::out | std::ios::binary);
+        if(!file.is_open()){
+            Debug_LOG_ERROR("Could not open file: %s", m_filename);
+            data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;
+            return 0; 
+        }
+
+        file.seekg(address, ios::beg);
+        uint32_t pos_before = (uint32_t)file.tellp();
+        file.read(&data[RESP_PAYLD_INDEX], length);
+        uint32_t read_length = (uint32_t)file.tellp() - pos_before;
+        file.close();
+
+        data[RESP_RETVAL_INDEX] = ((read_length == length) ? RET_OK : RET_READ_ERR);
+        m_cpyIntToBuf(read_length, (unsigned char*)&data[RESP_BYTES_INDEX]);
+        return read_length;         
+
     }
 
 public:
@@ -212,7 +213,7 @@ public:
     std::vector<char> HandlePayload(vector<char> buffer)
     {
         Debug_LOG_TRACE("%s: printing buffer...", __func__);
-        int length, address, payloadLength = 0;
+        uint32_t length, address, payloadLength = 0;
         vector<char> response;
         char data[MAX_MSG_LEN];
 
