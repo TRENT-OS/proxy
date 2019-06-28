@@ -20,8 +20,8 @@
 #define CMD_WRITE               1
 #define CMD_READ                2
 
-#define DEFAULT_MEM_SIZE        1024*1024 //1 MB of memory
-#define CHAN_6_MEM_SIZE         128*1024 //128 kB of memory
+#define DEFAULT_MEM_SIZE        (1024*1024) //1 MB of memory
+#define CHAN_6_MEM_SIZE         (128*1024) //128 kB of memory
 
 #define MAX_MSG_LEN             4096
 #define RESP_HEADER_LEN         6
@@ -65,6 +65,86 @@ private:
 
     size_t m_cpyBufToInt(unsigned char* buf){
         return (buf[0] << 24) | (buf[1] << 16) | (buf[2] << 8) | (buf[3]);
+    }
+
+    bool m_checkMemoryBoundaries(int length, int address, char* error){
+        //check if the address is outside of the memory bounds
+        //if it is read 0 bytes
+        if (address > m_memorySize){
+            Debug_LOG_ERROR("Request size is outside of memory bounds! Adress: %d, Length: %d, Memory size: %lu", address, length, m_memorySize);
+            *error = RET_ADDR_OUT_OF_BOUNDS;
+            return false;
+        }
+        //check if length exceeds the available room (from specified address to the end)
+        //if it does read just the readable amount of bytes
+        else if (length > (m_memorySize - address)){
+            Debug_LOG_ERROR("Address outside of memory bounds! Adress: %d, Memory size: %lu", address, m_memorySize);
+            *error = RET_LEN_OUT_OF_BOUNDS;
+            return false;
+        }
+
+        return true;
+    }
+
+    void m_handleGetSizeReq(char* data){
+        data[RESP_COMM_INDEX] = CMD_GET_SIZE;
+        data[RESP_RETVAL_INDEX] = RET_OK;
+        m_cpyIntToBuf(m_memorySize, (unsigned char*)&data[RESP_BYTES_INDEX]);
+    }
+
+    void m_handleWriteReq(char* data, int length, int address){
+        data[RESP_COMM_INDEX] = CMD_WRITE;
+        m_cpyIntToBuf(0, (unsigned char*)&data[RESP_BYTES_INDEX]);
+
+        if(!m_checkMemoryBoundaries(length, address, &data[RESP_RETVAL_INDEX])){
+            Debug_LOG_ERROR("Memory boundaries check failed!");
+        }
+        else{
+            fstream file (m_filename, ios::in | ios::out | std::ios::binary);
+            if(!file.is_open()){
+                Debug_LOG_ERROR("Could not open file: %s", m_filename);
+                data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;
+            }
+            else{
+                file.seekg(address, ios::beg);
+                uint32_t pos_before = (uint32_t)file.tellp();
+                file.write(&data[REQ_PAYLD_INDEX], length);
+                uint32_t written_length = (uint32_t)file.tellp() - pos_before;
+                file.close();
+
+                data[RESP_RETVAL_INDEX] = ((written_length == length) ? RET_OK : RET_WRITE_ERR);
+                m_cpyIntToBuf(written_length, (unsigned char*)&data[RESP_BYTES_INDEX]);
+            }
+        }
+    }
+
+    int m_handleReadReq(char* data, int length, int address){
+        uint32_t read_length = 0;
+        data[RESP_COMM_INDEX] = CMD_READ;
+        m_cpyIntToBuf(0, (unsigned char*)&data[RESP_BYTES_INDEX]);
+
+        if(!m_checkMemoryBoundaries(length, address, &data[RESP_RETVAL_INDEX])){
+            Debug_LOG_ERROR("Memory boundaries check failed!");
+        }
+        else{
+            fstream file (m_filename, ios::in | ios::out | std::ios::binary);
+            if(!file.is_open()){
+                Debug_LOG_ERROR("Could not open file: %s", m_filename);
+                data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;   
+            }
+            else{
+                file.seekg(address, ios::beg);
+                uint32_t pos_before = (uint32_t)file.tellp();
+                file.read(&data[RESP_PAYLD_INDEX], length);
+                read_length = (uint32_t)file.tellp() - pos_before;
+                file.close();
+
+                data[RESP_RETVAL_INDEX] = ((read_length == length) ? RET_OK : RET_READ_ERR);
+                m_cpyIntToBuf(read_length, (unsigned char*)&data[RESP_BYTES_INDEX]);               
+            }
+        }
+
+        return read_length;
     }
 
 public:
@@ -132,7 +212,7 @@ public:
     std::vector<char> HandlePayload(vector<char> buffer)
     {
         Debug_LOG_TRACE("%s: printing buffer...", __func__);
-        int length, address;
+        int length, address, payloadLength = 0;
         vector<char> response;
         char data[MAX_MSG_LEN];
 
@@ -145,106 +225,29 @@ public:
         {
             case CMD_GET_SIZE:
             {
-                data[RESP_COMM_INDEX] = CMD_GET_SIZE;
-                data[RESP_RETVAL_INDEX] = RET_OK;
-                m_cpyIntToBuf(m_memorySize, (unsigned char*)&data[RESP_BYTES_INDEX]);
-
-                for(int i = 0; i < RESP_HEADER_LEN; i++){
-                    response.push_back(data[i]);
-                }
- 
-                return response;
+                m_handleGetSizeReq(data);
+                break;
             }        
             case CMD_WRITE:
             {
                 std::copy(buffer.begin(), buffer.end(), data);
-
-                data[RESP_COMM_INDEX] = CMD_WRITE;
-                m_cpyIntToBuf(int(0), (unsigned char*)&data[RESP_BYTES_INDEX]);
-
-                //check if the address is outside of the memory bounds
-                //if it is read 0 bytes
-                if (address > m_memorySize){
-                    Debug_LOG_ERROR("Request size is outside of memory bounds! Adress: %d, Length: %d, Memory size: %lu", address, length, m_memorySize);
-                    data[RESP_RETVAL_INDEX] = RET_ADDR_OUT_OF_BOUNDS;
-                }
-                //check if length exceeds the available room (from specified address to the end)
-                //if it does read just the readable amount of bytes
-                else if (length > (m_memorySize - address)){
-                    Debug_LOG_ERROR("Address outside of memory bounds! Adress: %d, Memory size: %lu", address, m_memorySize);
-                    data[RESP_RETVAL_INDEX] = RET_LEN_OUT_OF_BOUNDS;
-                }
-                else{
-                    fstream file (m_filename, ios::in | ios::out | std::ios::binary);
-                    if(file.is_open()){
-                        file.seekg(address, ios::beg);
-                        uint32_t pos_before = (uint32_t)file.tellp();
-                        file.write(&data[REQ_PAYLD_INDEX], length * sizeof(char));
-                        uint32_t written_length = (uint32_t)file.tellp() - pos_before;
-                        file.close();
-
-                        data[RESP_RETVAL_INDEX] = written_length == length ? RET_OK : RET_WRITE_ERR;
-                        m_cpyIntToBuf(written_length, (unsigned char*)&data[RESP_BYTES_INDEX]);
-                    }
-                    else{
-                        Debug_LOG_ERROR("Could not open file: %s", m_filename);
-                        data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;
-                    }
-                }
-
-                for(int i = 0; i < RESP_HEADER_LEN; i++){
-                    response.push_back(data[i]);
-                }
-
-                return response;
+                m_handleWriteReq(data, length, address);
+                break;
             }
             case CMD_READ:
             {   
-                uint32_t read_length = 0;
-                data[RESP_COMM_INDEX] = CMD_READ;
-                m_cpyIntToBuf(int(0), (unsigned char*)&data[RESP_BYTES_INDEX]);
-
-                //check if the address is outside of the memory bounds
-                //if it is read 0 bytes
-                if (address > m_memorySize){
-                    Debug_LOG_ERROR("Request size is outside of memory bounds! Adress: %d, Length: %d, Memory size: %lu", address, length, m_memorySize);
-                    data[RESP_RETVAL_INDEX] = RET_ADDR_OUT_OF_BOUNDS;
-                }
-                //check if length exceeds the available room (from specified address to the end)
-                //if it does read just the readable amount of bytes
-                else if (length > (m_memorySize - address)){
-                    Debug_LOG_ERROR("Address outside of memory bounds! Adress: %d, Memory size: %lu", address, m_memorySize);
-                    data[RESP_RETVAL_INDEX] = RET_LEN_OUT_OF_BOUNDS;
-                }
-                else{
-                    fstream file (m_filename, ios::in | ios::out | std::ios::binary);
-                    if(file.is_open()){
-                        file.seekg(address, ios::beg);
-                        uint32_t pos_before = (uint32_t)file.tellp();
-                        file.read(&data[RESP_PAYLD_INDEX], length * sizeof(char));
-                        read_length = (uint32_t)file.tellp() - pos_before;
-                        file.close();
-
-                        data[RESP_RETVAL_INDEX] = read_length == length ? RET_OK : RET_READ_ERR;
-                        m_cpyIntToBuf(read_length, (unsigned char*)&data[RESP_BYTES_INDEX]);
-                    }
-                    else{
-                        Debug_LOG_ERROR("Could not open file: %s", m_filename);
-                        data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;                  
-                    }
-                }
-                
-                for(int i = 0; i < read_length + RESP_HEADER_LEN; i++){
-                    response.push_back(data[i]);
-                }
-
-                return response;
+                payloadLength = m_handleReadReq(data, length, address);
+                break;
             }
             default:
                 Debug_LOG_ERROR("\nUnsupported NVM command!\n");
-
-                return response;
         }
+
+        for(int i = 0; i < payloadLength + RESP_HEADER_LEN; i++){
+            response.push_back(data[i]);
+        }
+
+        return response;        
     }
 
     ~Nvm()
