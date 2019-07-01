@@ -22,6 +22,7 @@
 
 #define DEFAULT_MEM_SIZE        (1024*1024) //1 MB of memory
 #define CHAN_6_MEM_SIZE         (128*1024) //128 kB of memory
+#define CHAN_7_MEM_SIZE         (128*1024) //128 kB of memory
 
 #define MAX_MSG_LEN             4096
 #define RESP_HEADER_LEN         6
@@ -172,7 +173,10 @@ public:
         case 6:
             m_memorySize = CHAN_6_MEM_SIZE;
             break;
-        
+        case 7:
+            m_memorySize = CHAN_7_MEM_SIZE;
+            break;
+
         default:
             m_memorySize = DEFAULT_MEM_SIZE;
             break;
