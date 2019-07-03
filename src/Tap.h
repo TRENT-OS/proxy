@@ -133,7 +133,15 @@ public:
             printf("Get mac  command rx:\n");
              // handle get mac here.
             vector<char> mac(6,0);
-            getMac("tap0",&mac[0]);
+            if(commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
+            {
+                getMac("tap0",&mac[0]);
+            }
+            else if(commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2)
+            {
+                getMac("tap1",&mac[0]);
+            }
+
             printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
             result[0] = 0;
             memcpy(&result[1],&mac[0],6);
