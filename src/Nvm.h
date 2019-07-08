@@ -21,8 +21,8 @@
 #define CMD_READ                2
 
 #define DEFAULT_MEM_SIZE        (1024*1024) //1 MB of memory
-#define CHANNEL_6_MEM_SIZE      (128*1024)  //128 kB of memory
-#define CHANNEL_7_MEM_SIZE      (128*1024)  //128 kB of memory
+#define CHANNEL_NVM_1_MEM_SIZE  (128*1024)  //128 kB of memory
+#define CHANNEL_NVM_2_MEM_SIZE  (128*1024)  //128 kB of memory
 
 #define MAX_MSG_LEN             4096
 #define RESP_HEADER_LEN         6
@@ -171,10 +171,10 @@ public:
         switch (chanNum)
         {
         case UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM:
-            m_memorySize = CHANNEL_6_MEM_SIZE;
+            m_memorySize = CHANNEL_NVM_1_MEM_SIZE;
             break;
         case UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM2:
-            m_memorySize = CHANNEL_7_MEM_SIZE;
+            m_memorySize = CHANNEL_NVM_2_MEM_SIZE;
             break;
 
         default:
