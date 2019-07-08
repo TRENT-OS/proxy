@@ -40,6 +40,9 @@ public:
                     creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN];
         creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM] =
                 new NvmSocketCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM);
+        
+        creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM2] =
+                new NvmSocketCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM2);
     }
 
     ~SocketCreators()
