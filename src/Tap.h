@@ -57,7 +57,6 @@ public:
     	           {
     	        	   return -1;
     	           }
-      	    	    printf("[yk]%s....2\n", __FUNCTION__);
     	           len = (int)read(tapfd, &buf[0], buf.size());
     	            if (len > 0)
     	             {
@@ -77,9 +76,7 @@ public:
 
       int Write(vector<char> buf)
       {
-    		printf("[yk]%s\n", __FUNCTION__);
     	    return write(tapfd, &buf[0], buf.size());
-
       }
 
       int Close()
