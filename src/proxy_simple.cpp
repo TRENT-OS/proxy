@@ -43,7 +43,7 @@ string UartSocketCommand(UartSocketGuestSocketCommand command)
     }
 }
 
-void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChannel, const vector<char> &buffer)
+void WriteToGuest(UartIoDevice *pseudoDevice, unsigned int logicalChannel, const vector<char> &buffer)
 {
     int writtenBytes;
     GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
@@ -394,8 +394,7 @@ int main(int argc, const char *argv[])
     in_the_stack =1;       // it must be 1 for host system = linux
 
     /* Shared resource used because multithreaded access to pseudodevice not working. With QEMU using sockets: may not be needed any more.*/
-    //SharedResource<string> pseudoDevice{&pseudoDeviceName};
-    SharedResource<string> pseudoDevice{&pseudoDeviceName, &type};
+    UartIoDevice pseudoDevice{&pseudoDeviceName, &type};
 
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
     if (!guestConnector.IsOpen())

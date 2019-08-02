@@ -4,7 +4,7 @@
 #include "type.h"
 #include "uart_io_host.h"
 #include "uart_hdlc.h"
-#include "SharedResource.h"
+#include "UartIoDevice.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,7 @@ class GuestConnector
         TO_GUEST
     };
 
-    GuestConnector(SharedResource<string> *pseudoDevice, GuestDirection guestDirection)
+    GuestConnector(UartIoDevice *pseudoDevice, GuestDirection guestDirection)
         : pseudoDevice(pseudoDevice)
     {
         pseudoDevice->Lock();
@@ -93,7 +93,7 @@ class GuestConnector
     bool IsOpen() const { return isOpen; }
 
     private:
-    SharedResource<string> *pseudoDevice;
+    UartIoDevice *pseudoDevice;
     UartIoHost uartIoHost;
     UartHdlc uartHdlc;
     bool isOpen;
