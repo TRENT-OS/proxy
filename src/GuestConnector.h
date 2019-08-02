@@ -43,6 +43,7 @@ class GuestConnector
             UartIoHostInit(
                 &uartIoHost, 
                 pseudoDevice->GetResource()->c_str(),
+                pseudoDevice->GetType(),
                 UART_IO_HOST_FLAG_NONBLOCKING | UART_IO_HOST_FLAG_READ_ONLY);
         }
         else
@@ -50,6 +51,7 @@ class GuestConnector
             UartIoHostInit(
                 &uartIoHost, 
                 pseudoDevice->GetResource()->c_str(),
+                pseudoDevice->GetType(),
                 UART_IO_HOST_FLAG_WRITE_ONLY);
         }
 

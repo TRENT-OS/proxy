@@ -315,40 +315,62 @@ int main(int argc, const char *argv[])
         printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal | QEMU_tcp_port [lan port] [cloud_host_name] [cloud_port] [use_pico] [use_tap]\n");
         return 0;
     }
+    
+    DeviceType type;
 
-    string pseudoDeviceName{argv[1]};
+    string deviceType{argv[1]};
+    if (deviceType == "-s")
+    {
+        type = DEVICE_TYPE_SOCKET;
+    }
+    else if (deviceType == "-p")
+    {
+        type = DEVICE_TYPE_PSEUDO_CONSOLE;
+    }
+    else if (deviceType == "-t")
+    {
+        type = DEVICE_TYPE_RAW_SERIAL;
+        
+    }
+    else
+    {
+        printf("Unknown parameter %s \n", deviceType.c_str());
+    }
+
+    string pseudoDeviceName{argv[2]};
 
     int lanPort = SERVER_PORT;
-    if (argc > 2)
+    if (argc > 3)
     {
-        lanPort = atoi(argv[2]);
+        lanPort = atoi(argv[3]);
     }
 
     string hostName {SERVER_NAME};
-    if (argc > 3)
+    if (argc > 4)
     {
-        hostName = string{argv[3]};
+        hostName = string{argv[4]};
     }
 
     int port = SERVER_PORT;
-    if (argc > 4)
+    if (argc > 5)
     {
-        port = atoi(argv[4]);
+        port = atoi(argv[5]);
     }
 
-    if(argc > 5)
+    if(argc > 6)
     {
-        use_pico = atoi(argv[5]);
+    	use_pico = atoi(argv[6]);
     }
 
     int use_tap = 0;
-    if(argc > 6)
+    if(argc > 7)
     {
-        use_tap = atoi(argv[6]);
+    	use_tap = atoi(argv[7]);
     }
 
-    printf("Starting mqtt proxy on lan port: %d with pseudo device: %s using cloud host: %s port: %d use_pico:%d, use_tap:%d \n",
+    printf("Starting mqtt proxy on lan port: %d of type %s with pseudo device: %s using cloud host: %s port: %d use_pico:%d, use_tap:%d \n",
         lanPort,
+        deviceType.c_str(),
         pseudoDeviceName.c_str(),
         hostName.c_str(),
         port,
@@ -372,7 +394,9 @@ int main(int argc, const char *argv[])
     in_the_stack =1;       // it must be 1 for host system = linux
 
     /* Shared resource used because multithreaded access to pseudodevice not working. With QEMU using sockets: may not be needed any more.*/
-    SharedResource<string> pseudoDevice{&pseudoDeviceName};
+    //SharedResource<string> pseudoDevice{&pseudoDeviceName};
+    SharedResource<string> pseudoDevice{&pseudoDeviceName, &type};
+
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
     if (!guestConnector.IsOpen())
     {
