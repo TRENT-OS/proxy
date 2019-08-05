@@ -319,6 +319,7 @@ int main(int argc, const char *argv[])
     DeviceType type;
 
     string deviceType{argv[1]};
+    
     if (deviceType == "-s")
     {
         type = DEVICE_TYPE_SOCKET;
@@ -334,10 +335,18 @@ int main(int argc, const char *argv[])
     }
     else
     {
-        printf("Unknown parameter %s \n", deviceType.c_str());
+        printf("Unknown Device parameter %s\n", deviceType.c_str());
+        printf("Possible options are: -p (pty), -t (tty), -s (tcp socket)\n");
+        return -1;
+    }
+
+    if (argc < 3) {
+        printf("Port or device path needs to be specified\n");
+        return -1;
     }
 
     string pseudoDeviceName{argv[2]};
+    
 
     int lanPort = SERVER_PORT;
     if (argc > 3)
