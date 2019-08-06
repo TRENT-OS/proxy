@@ -2,7 +2,7 @@
 #pragma once
 
 #include "GuestListeners.h"
-#include "UartIoDevice.h"
+#include "uart_io_device.h"
 #include "IoDevices.h"
 #include "uart_socket_guest_rpc_conventions.h"
 

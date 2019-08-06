@@ -4,7 +4,7 @@
 #include "type.h"
 #include "uart_io_host.h"
 #include "uart_hdlc.h"
-#include "UartIoDevice.h"
+#include "uart_io_device.h"
 
 #include <stdio.h>
 #include <stdlib.h>
