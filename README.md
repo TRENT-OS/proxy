@@ -19,13 +19,16 @@ The project builds a Linux command line utility
 
 ### Build steps
 
-    # check out
-    git clone --recursive -b master ssh://git@bitbucket.hensoldt-cyber.systems:7999/hc/mqtt_proxy_demo.git
-    
-    # build automatic
-    run build.sh on the terminal e.g. $./build.sh
+    # create workspace folder
+    mkdir mqtt_proxy_demo
+    cd mqtt_proxy_demo
 
-    # run
-    # The command line parameter "pseudoterminal" is the name of the device QEMU has mapped the serial port to. Usually it is something like /dev/pts/4
-    ./mqtt_proxy_demo pseudoterminal
+    # check out into folder "src"
+    git clone --recursive ssh://git@bitbucket.hensoldt-cyber.systems:7999/hc/mqtt_proxy_demo.git src
 
+    # run build, will create a folder "build" with the application binary
+    src/build.sh
+
+    # run application and connect to QEMU on TCP port 4444, listen on local
+    # port 7999 for MQTT packets, open cloud connection to 51.144.118.31:8883
+    build/mqtt_proxy 4444 7999 51.144.118.31 8883
