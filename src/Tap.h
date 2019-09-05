@@ -2,7 +2,7 @@
  * Tap.h
  *
  *  Created on: Mar 25, 2019
- *      Author: yk
+ *      Author: yogesh kulkarni
  */
 
 
@@ -31,11 +31,12 @@
 #include <sys/poll.h>
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
-
+#include "LibDebug/Debug.h"
 
 using namespace std;
 
 #define TUN_MTU 1024
+
 
 class Tap : public InputDevice, public OutputDevice
 {
@@ -50,6 +51,9 @@ public:
       {
     	  struct pollfd pfd;
     	     int len;
+             int compare;
+             int compare2;
+             uint8_t ARP_IP_ADDDR[4] = {0xc0,0xa8,0x52,0x5c};  /* This is the IP '192.168.82.92' of tap1 interface*/
     	     pfd.fd = tapfd;
     	     pfd.events = POLLIN;
     	     do  {
@@ -58,21 +62,62 @@ public:
     	        	   return -1;
     	           }
     	           len = (int)read(tapfd, &buf[0], buf.size());
-    	            if (len > 0)
-    	             {
-    	               return len;
-    	             }
-    	            else
-    	            {
-    	        	 return -1;
-    	            }
 
-    	       } while(0);
+                   /* For tap0 no ARP is needed as it is configured for client,hence filter based on mac only */
+                   /* For tap1 ARP is needed as it is configured for server,hence filter based on mac or IP addr */
+                   /* ARP is a 42 bytes protocol and hence the last 4 bytes would start from 38 */
+
+                   compare  = memcmp(&buf[0], &mac_tap[0],6);  /* For TCP protocol, first 6 bytes are always mac*/
+                   compare2 = memcmp(&buf[38],&ARP_IP_ADDDR[0],4);  /* For ARP , last 4 bytes are always IP addr */
+
+                   /* Block excess traffic for tap0. Send only data which starts with MAC of tap0 */
+
+                   if(strcmp(devname,"tap0") == 0)
+                   {
+
+                      /* Compare the 6 bytes of mac, read only data meant for tap0 mac addr.
+                         Filter out other data  */
+
+                       if(compare == 0)
+                       {
+                            if (len > 0)
+                            {
+                               return len;
+                            }
+                            else
+                            {
+                               return -1;
+                            }
+                       }
+                       else
+                       {
+                            return -1;
+                       }
+                    }
+                    else if(strcmp(devname,"tap1") == 0)
+                    {
+                       /* For tap1, compare 6 bytes of mac or IP addr. Both must be allowed  */
+                       if((compare == 0) || (compare2 == 0))
+                       {
+                          if (len > 0)
+                          {
+                              return len;
+                          }
+                          else
+                          {
+                              return -1;
+                          }
+                       }
+                       else
+                       {
+                            return -1;
+                       }
+                    }
 
 
+                } while(0);
 
-    	  //return read(tapfd, &buf[0], buf.size());
-      }
+     }
 
       int Write(vector<char> buf)
       {
@@ -133,10 +178,16 @@ public:
             if(commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
             {
                 getMac("tap0",&mac[0]);
+                memcpy(&mac_tap[0],&mac[0],6);
+                strncpy(devname, "tap0",5);
+                mac_tap[5]++;
             }
             else if(commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2)
             {
                 getMac("tap1",&mac[0]);
+                memcpy(&mac_tap[0],&mac[0],6);
+                strncpy(devname, "tap1",5);
+                mac_tap[5]++;
             }
 
             printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
@@ -153,6 +204,8 @@ public:
 
 private:
       int tapfd;
+      uint8_t mac_tap[6];  /* Save tap mac addr and name for later use for filtering data */
+      char devname[10];
       void error(const char *msg) const
       {
           fprintf(stderr, "%s\n", msg);
