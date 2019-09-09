@@ -4,7 +4,8 @@
 #include "type.h"
 #include "uart_io_host.h"
 #include "uart_hdlc.h"
-#include "uart_io_device.h"
+#include "PseudoDevice.h"
+#include "SharedResource.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,25 +34,26 @@ class GuestConnector
         TO_GUEST
     };
 
-    GuestConnector(UartIoDevice *pseudoDevice, GuestDirection guestDirection)
+    GuestConnector(SharedResource<PseudoDevice> *pseudoDevice, GuestDirection guestDirection)
         : pseudoDevice(pseudoDevice)
     {
         pseudoDevice->Lock();
+        PseudoDevice tempDevice = *pseudoDevice->GetResource();
 
         if (guestDirection == FROM_GUEST)
         {
             UartIoHostInit(
                 &uartIoHost, 
-                pseudoDevice->GetResource()->c_str(),
-                pseudoDevice->GetType(),
+                tempDevice.GetResource()->c_str(),
+                tempDevice.GetType(),
                 UART_IO_HOST_FLAG_NONBLOCKING | UART_IO_HOST_FLAG_READ_ONLY);
         }
         else
         {
             UartIoHostInit(
                 &uartIoHost, 
-                pseudoDevice->GetResource()->c_str(),
-                pseudoDevice->GetType(),
+                tempDevice.GetResource()->c_str(),
+                tempDevice.GetType(),
                 UART_IO_HOST_FLAG_WRITE_ONLY);
         }
 
@@ -93,7 +95,7 @@ class GuestConnector
     bool IsOpen() const { return isOpen; }
 
     private:
-    UartIoDevice *pseudoDevice;
+    SharedResource<PseudoDevice> *pseudoDevice;
     UartIoHost uartIoHost;
     UartHdlc uartHdlc;
     bool isOpen;

@@ -7,7 +7,7 @@
 
 extern __thread int in_the_stack;
 extern int use_pico;
-void ToGuestThread(SocketAdmin *socketAdmin, UartIoDevice *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
+void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<PseudoDevice> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
 {
 
     size_t bufSize = 2048;    //256;

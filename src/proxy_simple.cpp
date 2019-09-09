@@ -2,6 +2,7 @@
 
 #include "GuestConnector.h"
 #include "ServerSocket.h"
+#include "SharedResource.h"
 #include "Socket.h"
 #include "MqttCloud.h"
 #include "SocketAdmin.h"
@@ -43,7 +44,7 @@ string UartSocketCommand(UartSocketGuestSocketCommand command)
     }
 }
 
-void WriteToGuest(UartIoDevice *pseudoDevice, unsigned int logicalChannel, const vector<char> &buffer)
+void WriteToGuest(SharedResource<PseudoDevice> *pseudoDevice, unsigned int logicalChannel, const vector<char> &buffer)
 {
     int writtenBytes;
     GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
@@ -403,7 +404,8 @@ int main(int argc, const char *argv[])
     in_the_stack =1;       // it must be 1 for host system = linux
 
     /* Shared resource used because multithreaded access to pseudodevice not working. With QEMU using sockets: may not be needed any more.*/
-    UartIoDevice pseudoDevice{&pseudoDeviceName, &type};
+    PseudoDevice parsedDevice{&pseudoDeviceName, &type};
+    SharedResource<PseudoDevice> pseudoDevice{&parsedDevice};
 
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
     if (!guestConnector.IsOpen())
