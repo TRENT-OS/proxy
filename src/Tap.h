@@ -51,73 +51,63 @@ public:
       {
     	  struct pollfd pfd;
     	     int len;
-             int compare;
-             int compare2;
-             uint8_t ARP_IP_ADDDR[4] = {0xc0,0xa8,0x52,0x5c};  /* This is the IP '192.168.82.92' of tap1 interface*/
+             int is_mac_ok;
+             int is_ip_ok;
+             uint8_t ARP_IP_ADDR[4] = {192,168,82,92};  /* This is the IP '192.168.82.92' of tap1 interface*/
     	     pfd.fd = tapfd;
     	     pfd.events = POLLIN;
     	     do  {
-    	           if (poll(&pfd, 1, 0) <= 0)
-    	           {
-    	        	   return -1;
-    	           }
-    	           len = (int)read(tapfd, &buf[0], buf.size());
+                     if (poll(&pfd, 1, 0) <= 0)
+                     {
+                        return -1;
+                     }
+                     len = (int)read(tapfd, &buf[0], buf.size());
+
+                     if(len <= 0)
+                     {
+                         return -1;
+                     }
 
                    /* For tap0 no ARP is needed as it is configured for client,hence filter based on mac only */
                    /* For tap1 ARP is needed as it is configured for server,hence filter based on mac or IP addr */
-                   /* ARP is a 42 bytes protocol and hence the last 4 bytes would start from 38 */
+                   /* ARP as seen on wireshark has length of 42 bytes when you use the same machine where the server runs
+                      to connect to it and ARP has length of 60 bytes if you use another machine on the same Network
+                      to connect to server. In both these cases the IP addr of destination TAP1 4 bytes would start from 38 */
 
-                   compare  = memcmp(&buf[0], &mac_tap[0],6);  /* For TCP protocol, first 6 bytes are always mac*/
-                   compare2 = memcmp(&buf[38],&ARP_IP_ADDDR[0],4);  /* For ARP , last 4 bytes are always IP addr */
+                     is_mac_ok  = memcmp(&buf[0], &mac_tap[0],6);  /* For Ethernet frames (with TCP traffic), first 6 bytes are always destination mac*/
+                     is_ip_ok = memcmp(&buf[38],&ARP_IP_ADDR[0],4);  /* For ARP,last 4 bytes are always IP addr */
 
-                   /* Block excess traffic for tap0. Send only data which starts with MAC of tap0 */
+                      /* Block excess traffic for tap0. Send only data which starts with MAC of tap0 */
 
-                   if(strcmp(devname,"tap0") == 0)
-                   {
+                      if(strcmp(devname,"tap0") == 0)
+                      {
+                        /* Compare the 6 bytes of mac, read only data meant for tap0 mac addr.
+                          Filter out other data i.e. Return len only when is_mac_ok equals 0  */
 
-                      /* Compare the 6 bytes of mac, read only data meant for tap0 mac addr.
-                         Filter out other data  */
-
-                       if(compare == 0)
-                       {
-                            if (len > 0)
-                            {
-                               return len;
-                            }
-                            else
-                            {
-                               return -1;
-                            }
-                       }
-                       else
-                       {
-                            return -1;
-                       }
-                    }
-                    else if(strcmp(devname,"tap1") == 0)
-                    {
-                       /* For tap1, compare 6 bytes of mac or IP addr. Both must be allowed  */
-                       if((compare == 0) || (compare2 == 0))
-                       {
-                          if (len > 0)
-                          {
-                              return len;
-                          }
-                          else
-                          {
+                           if(is_mac_ok != 0)
+                           {
                               return -1;
-                          }
+                           }
+
+                          return len;
                        }
-                       else
+                       else if(strcmp(devname,"tap1") == 0)
                        {
-                            return -1;
+                            /* For tap1, compare 6 bytes of mac or IP addr. Both must be allowed to pass.
+                           i.e. Return len only when either one of them is_mac_ok OR is_ip_ok equals 0 */
+
+                           if((is_mac_ok != 0) && (is_ip_ok != 0))
+                           {
+                              return -1;
+                           }
+
+                           return len;
                        }
-                    }
 
 
                 } while(0);
 
-     }
+     } // end of read
 
       int Write(vector<char> buf)
       {

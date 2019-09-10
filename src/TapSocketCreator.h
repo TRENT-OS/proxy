@@ -33,7 +33,7 @@ class TapSocketCreator : public IoDeviceCreator
 	    	 printf("ERROR reading ioctl");
 	    	 tapfd=-1;
 	    }
-	   printf("tapfd = %d, %s\n",tapfd, __FUNCTION__);
+	   printf("%s() tapfd = %d\n", __FUNCTION__,tapfd);
 
 
     }
