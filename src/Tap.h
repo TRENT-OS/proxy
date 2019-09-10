@@ -70,12 +70,14 @@ public:
 
                    /* For tap0 no ARP is needed as it is configured for client,hence filter based on mac only */
                    /* For tap1 ARP is needed as it is configured for server,hence filter based on mac or IP addr */
-                   /* ARP as seen on wireshark has length of 42 bytes when you use the same machine where the server runs
-                      to connect to it and ARP has length of 60 bytes if you use another machine on the same Network
-                      to connect to server. In both these cases the IP addr of destination TAP1 4 bytes would start from 38 */
+                   /* ARP request in brief: The size of ARP request is 42 bytes (28 bytes of ARP msg and 14 bytes Ethernet header).
+                      Each frame is padded to Ethernet minimum :60 bytes data.
+                      In the use case when NW server and client app run on the same device ARP request length is 42 bytes.No padding seen.
+                      In the use case when NW server and client app run on different devices, ARP request is 60 bytes.
+                      In both these cases the IP addr of destination "TAP1" with 4 bytes would start from offset 38 */
 
                      is_mac_ok  = memcmp(&buf[0], &mac_tap[0],6);  /* For Ethernet frames (with TCP traffic), first 6 bytes are always destination mac*/
-                     is_ip_ok = memcmp(&buf[38],&ARP_IP_ADDR[0],4);  /* For ARP,last 4 bytes are always IP addr */
+                       is_ip_ok = memcmp(&buf[38],&ARP_IP_ADDR[0],4);  /* For ARP,last 4 bytes are always IP addr */
 
                       /* Block excess traffic for tap0. Send only data which starts with MAC of tap0 */
 
