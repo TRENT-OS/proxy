@@ -75,10 +75,14 @@ public:
                       In the use case when NW server and client app run on the same device ARP request length is 42 bytes.No padding seen.
                       In the use case when NW server and client app run on different devices, ARP request is 60 bytes.
                       In both these cases the IP addr of destination "TAP1" with 4 bytes would start from offset 38 */
-
-                     is_mac_ok  = memcmp(&buf[0], &mac_tap[0],6);  /* For Ethernet frames (with TCP traffic), first 6 bytes are always destination mac*/
-                       is_ip_ok = memcmp(&buf[38],&ARP_IP_ADDR[0],4);  /* For ARP,last 4 bytes are always IP addr */
-
+                    if(len >= 6)
+                     {
+                        is_mac_ok  = (0 == memcmp(&buf[0], &mac_tap[0],6));  /* For Ethernet frames (with TCP traffic), first 6 bytes are always destination mac*/
+                     }
+                     if(len >=42)
+                     {
+                        is_ip_ok = (0 == memcmp(&buf[38],&ARP_IP_ADDR[0],4));  /* For ARP,last 4 bytes are always IP addr */
+                     }
                       /* Block excess traffic for tap0. Send only data which starts with MAC of tap0 */
 
                       if(strcmp(devname,"tap0") == 0)
@@ -86,7 +90,7 @@ public:
                         /* Compare the 6 bytes of mac, read only data meant for tap0 mac addr.
                           Filter out other data i.e. Return len only when is_mac_ok equals 0  */
 
-                           if(is_mac_ok != 0)
+                           if(is_mac_ok != true)
                            {
                               return -1;
                            }
@@ -98,7 +102,7 @@ public:
                             /* For tap1, compare 6 bytes of mac or IP addr. Both must be allowed to pass.
                            i.e. Return len only when either one of them is_mac_ok OR is_ip_ok equals 0 */
 
-                           if((is_mac_ok != 0) && (is_ip_ok != 0))
+                           if((is_mac_ok != true) && (is_ip_ok != true))
                            {
                               return -1;
                            }
@@ -180,6 +184,11 @@ public:
                 memcpy(&mac_tap[0],&mac[0],6);
                 strncpy(devname, "tap1",5);
                 mac_tap[5]++;
+            }
+            else
+            {
+                printf("%s() Unsupported Logical channel\n",__FUNCTION__);
+                result[0] = -1;
             }
 
             printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
