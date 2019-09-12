@@ -36,6 +36,10 @@
 using namespace std;
 
 #define TUN_MTU 1024
+#define ARP_MIN_SIZE 42     /* min packet size of ARP */
+#define ARP_ETHERTYPE_BYTE1 0x08 /* Ether type of ARP packet */
+#define ARP_ETHERTYPE_BYTE2 0x06 /* Ether type of ARP packet */
+#define ARP_OFFSET_ETHERTYPE 12 /* First 12 bytes are occupied by mac address */
 
 
 class Tap : public InputDevice, public OutputDevice
@@ -68,25 +72,35 @@ public:
                          return -1;
                      }
 
-                   /* For tap0 no ARP is needed as it is configured for client,hence filter based on mac only */
-                   /* For tap1 ARP is needed as it is configured for server,hence filter based on mac or IP addr */
-                   /* ARP request in brief: The size of ARP request is 42 bytes (28 bytes of ARP msg and 14 bytes Ethernet header).
+                   /* For tap0 no ARP is needed as it is configured for client,hence filter based on mac only
+                      For tap1 ARP is needed as it is configured for server,hence filter based on mac or IP addr
+                      ARP request in brief: The size of ARP request is 42 bytes (28 bytes of ARP msg and 14 bytes Ethernet header).
                       Each frame is padded to Ethernet minimum :60 bytes data.
                       In the use case when NW server and client app run on the same device ARP request length is 42 bytes.No padding seen.
                       In the use case when NW server and client app run on different devices, ARP request is 60 bytes.
                       In both these cases the IP addr of destination "TAP1" with 4 bytes would start from offset 38 */
-                    if(len >= 6)
+                    if(len >= sizeof(mac_tap))
                      {
-                        is_mac_ok  = (0 == memcmp(&buf[0], &mac_tap[0],6));  /* For Ethernet frames (with TCP traffic), first 6 bytes are always destination mac*/
+                        is_mac_ok  = (0 == memcmp(&buf[0], &mac_tap[0],sizeof(mac_tap)));  /* For Ethernet frames (with TCP traffic), first 6 bytes are always destination mac*/
                      }
-                     if(len >=42)
+
+                    if(len >= ARP_MIN_SIZE)
                      {
-                        is_ip_ok = (0 == memcmp(&buf[38],&ARP_IP_ADDR[0],4));  /* For ARP,last 4 bytes are always IP addr */
+                        /* To confirm its an ARP packet, ethertype must be 0x0806*/
+                          if(buf[ARP_OFFSET_ETHERTYPE] != ARP_ETHERTYPE_BYTE1)
+                          {
+                            is_ip_ok = false;
+                          }
+                          else
+                          {
+                            is_ip_ok = (0 == memcmp(&buf[ARP_MIN_SIZE-sizeof(ARP_IP_ADDR)],&ARP_IP_ADDR[0],sizeof(ARP_IP_ADDR)));  /* For ARP,last 4 bytes are always IP addr */
+                          }
+
                      }
                       /* Block excess traffic for tap0. Send only data which starts with MAC of tap0 */
 
-                      if(strcmp(devname,"tap0") == 0)
-                      {
+                     if(strcmp(devname,"tap0") == 0)
+                     {
                         /* Compare the 6 bytes of mac, read only data meant for tap0 mac addr.
                           Filter out other data i.e. Return len only when is_mac_ok equals 0  */
 
@@ -96,11 +110,11 @@ public:
                            }
 
                           return len;
-                       }
-                       else if(strcmp(devname,"tap1") == 0)
-                       {
+                      }
+                      else if(strcmp(devname,"tap1") == 0)
+                      {
                             /* For tap1, compare 6 bytes of mac or IP addr. Both must be allowed to pass.
-                           i.e. Return len only when either one of them is_mac_ok OR is_ip_ok equals 0 */
+                           i.e. Return len only when either one of them is_mac_ok OR is_ip_ok equals true*/
 
                            if((is_mac_ok != true) && (is_ip_ok != true))
                            {
@@ -108,7 +122,7 @@ public:
                            }
 
                            return len;
-                       }
+                      }
 
 
                 } while(0);

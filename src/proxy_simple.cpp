@@ -368,7 +368,7 @@ int main(int argc, const char *argv[])
         use_pico,
         use_tap);
 
-    /* TODO: why is this called not checking command line arguments? */
+    /* why is this called not checking command line arguments? */
     /* Has to be called because pico_wrapper_start() steals the socket api's to decide to use linux or pico.
      * I see that when we link Pico as static lib, all the socket calls such as socket(), connect(), bind() etc
      * of the pico library is always used instead of the direct socket calls from the C lib. Hence its important to call this
