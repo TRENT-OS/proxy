@@ -2,7 +2,6 @@
  * Tap.h
  *
  *  Created on: Mar 25, 2019
- *      Author: yogesh kulkarni
  */
 
 
@@ -151,13 +150,13 @@ public:
 
 		// If we are here, the destination MAC did not match. Drop packet if we are
 		// not tap1
-		if (0 != strcmp(devname,"tap1"))
+		if ( !is_tap1)
 		{
 			if(devname[0] != '\0')
 			{
-				assert( 0 == strcmp(devname,"tap0") ); // fail safe, we must be tap0
+				assert( is_tap0 ); // fail safe, we must be tap0
+				return -1;
 			}
-			return -1;
 		}
 
 		// ToDo: do we support arbitrary MAC addresses or only those requests for
