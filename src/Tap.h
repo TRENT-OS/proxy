@@ -35,120 +35,221 @@
 
 using namespace std;
 
+#define  ENABLE_TAP_FILTER 1  /* Enable or disable the filter */
+
+/*
+Two problems seen when tap allows all the traffic to flow are
+    1.) Chanmux could start to overflow after sometime
+    2.) The read from an application (e.g. a webpage) is slow or time
+        consuming
+
+To solve this,either we can ignore the problem in the application as drop
+-ping of network packets is quite common
+
+OR
+
+Filter could be applied to filter out unncessary traffic for tap0 and tap1
+interfaces based on the current usage scenarios which include using TCP/IP
+traffic and ARP for incoming connection requests.
+
+*/
+
+#if (ENABLE_TAP_FILTER == 1)
+
+typedef uint8_t eth_mac_addr_t[6];
+typedef uint8_t ipv4_addr_t[4];
+
+// Ethernet header
+typedef struct {
+    eth_mac_addr_t  dest_addr;   // Destination hardware address
+    eth_mac_addr_t  src_addr;    // Source hardware address
+    uint16_t        frame_type;  // Ethernet frame type */
+} __attribute__((packed)) ethernet_header_t;
+
+#define ETHERNET_FRAME_TYPE_ARP 0x0806
+
+// Ethernet ARP packet from RFC 826
+typedef struct {
+    uint16_t        hw_type;          // 1 for Ethernet
+    uint16_t        protocol_type;    // 0x8000 for IPv4
+    uint8_t         hw_addr_len;      // 6 for Ethernet MACs
+    uint8_t         prot_addr_len;    // 4 for IPv4 IP addresses
+    uint16_t        operation;        // 1=request, 2=reply
+    eth_mac_addr_t  sender_mac;
+    ipv4_addr_t     sender_ip;
+    eth_mac_addr_t  target_mac;
+    ipv4_addr_t     target_ip;
+} __attribute__((packed)) arp_ethernet_ipv4_t;
+
+#define ARP_HW_TYPE_ETHERNET    1
+#define ARP_PROTOCOL_TYPE_IPv4  0x8000
+#define ARP_ETH_HW_ADDR_LEN     6
+#define ARP_PROT_IPv4_ADDR_LEN  4
+
+typedef struct {
+    ethernet_header_t       eth_header;
+    arp_ethernet_ipv4_t     arp_ipv4;
+} packet_ethernet_arp_ipv4_t;
+
+const ipv4_addr_t TAP1_IP_ADDR = {192,168,82,92};
+
+#endif
+
+
 #define TUN_MTU 1024
-#define ARP_MIN_SIZE 42     /* min packet size of ARP */
-#define ARP_ETHERTYPE_BYTE1 0x08 /* Ether type of ARP packet */
-#define ARP_ETHERTYPE_BYTE2 0x06 /* Ether type of ARP packet */
-#define ARP_OFFSET_ETHERTYPE 12 /* First 12 bytes are occupied by mac address */
 
 
 class Tap : public InputDevice, public OutputDevice
 {
 public:
-      Tap(int fd)
-      {
+    Tap(int fd)
+    {
 		tapfd = fd;
-      }
+    }
 
 
-      int Read(vector<char> &buf)
-      {
-    	  struct pollfd pfd;
-    	     int len;
-             int is_mac_ok;
-             int is_ip_ok;
-             uint8_t ARP_IP_ADDR[4] = {192,168,82,92};  /* This is the IP '192.168.82.92' of tap1 interface*/
-    	     pfd.fd = tapfd;
-    	     pfd.events = POLLIN;
-    	     do  {
-                     if (poll(&pfd, 1, 0) <= 0)
-                     {
-                        return -1;
-                     }
-                     len = (int)read(tapfd, &buf[0], buf.size());
+#if (ENABLE_TAP_FILTER == 1)
 
-                     if(len <= 0)
-                     {
-                         return -1;
-                     }
+    int Read(vector<char> &buf)
+	{
+		int is_tap0 = (0 == strcmp(devname,"tap0"));
+		int is_tap1 = (0 == strcmp(devname,"tap1"));
 
-                   /* For tap0 no ARP is needed as it is configured for client,hence filter based on mac only
-                      For tap1 ARP is needed as it is configured for server,hence filter based on mac or IP addr
-                      ARP request in brief: The size of ARP request is 42 bytes (28 bytes of ARP msg and 14 bytes Ethernet header).
-                      Each frame is padded to Ethernet minimum :60 bytes data.
-                      In the use case when NW server and client app run on the same device ARP request length is 42 bytes.No padding seen.
-                      In the use case when NW server and client app run on different devices, ARP request is 60 bytes.
-                      In both these cases the IP addr of destination "TAP1" with 4 bytes would start from offset 38 */
-                    if(len >= sizeof(mac_tap))
-                     {
-                        is_mac_ok  = (0 == memcmp(&buf[0], &mac_tap[0],sizeof(mac_tap)));  /* For Ethernet frames (with TCP traffic), first 6 bytes are always destination mac*/
-                     }
+		struct pollfd pfd;
+		pfd.fd = tapfd;
+		pfd.events = POLLIN;
 
-                    if(len >= ARP_MIN_SIZE)
-                     {
-                        /* To confirm its an ARP packet, ethertype must be 0x0806*/
-                          if(buf[ARP_OFFSET_ETHERTYPE] != ARP_ETHERTYPE_BYTE1)
-                          {
-                            is_ip_ok = false;
-                          }
-                          else
-                          {
-                            is_ip_ok = (0 == memcmp(&buf[ARP_MIN_SIZE-sizeof(ARP_IP_ADDR)],&ARP_IP_ADDR[0],sizeof(ARP_IP_ADDR)));  /* For ARP,last 4 bytes are always IP addr */
-                          }
+		if (poll(&pfd, 1, 0) <= 0)
+		{
+			return -1;
+		}
 
-                     }
-                      /* Block excess traffic for tap0. Send only data which starts with MAC of tap0 */
-
-                     if(strcmp(devname,"tap0") == 0)
-                     {
-                        /* Compare the 6 bytes of mac, read only data meant for tap0 mac addr.
-                          Filter out other data i.e. Return len only when is_mac_ok equals 0  */
-
-                           if(is_mac_ok != true)
-                           {
-                              return -1;
-                           }
-
-                          return len;
-                      }
-                      else if(strcmp(devname,"tap1") == 0)
-                      {
-                            /* For tap1, compare 6 bytes of mac or IP addr. Both must be allowed to pass.
-                           i.e. Return len only when either one of them is_mac_ok OR is_ip_ok equals true*/
-
-                           if((is_mac_ok != true) && (is_ip_ok != true))
-                           {
-                              return -1;
-                           }
-
-                           return len;
-                      }
+		// read a packet. We assume this will always read exactly one complete
+		// Ethernet packet.
+		int len = (int)read(tapfd, &buf[0], buf.size());
+		if(len <= 0)
+		{
+			// error reading packet
+			return -1;
+		}
 
 
-                } while(0);
+		ethernet_header_t* eth = (ethernet_header_t*)&buf[0];
+		if (len < sizeof(*eth))
+		{
+		   return -1;
+		}
 
-     } // end of read
+		static_assert( sizeof(mac_tap) == sizeof(eth->dest_addr) );
+		int is_mac_ok  = (0 == memcmp(eth->dest_addr, &mac_tap[0], sizeof(mac_tap)));
 
-      int Write(vector<char> buf)
-      {
+		// all packets can pass where the destination MAC matches
+		if (is_mac_ok)
+		{
+			return len;
+		}
+
+		// If we are here, the destination MAC did not match. Drop packet if we are
+		// not tap1
+		if (0 != strcmp(devname,"tap1"))
+		{
+			if(devname[0] != '\0')
+			{
+				assert( 0 == strcmp(devname,"tap0") ); // fail safe, we must be tap0
+			}
+			return -1;
+		}
+
+		// ToDo: do we support arbitrary MAC addresses or only those requests for
+		// the broadcast address ff-ff-ff-ff-ff-ff? And why don't we simply allow
+		// all broadcast packets to pass here, not just ARP?
+
+		// check if this is an Ethernet ARP packet
+
+		if (ETHERNET_FRAME_TYPE_ARP != ntohs(eth->frame_type)) // Network byte order is Big endian.
+		{
+			return -1;
+		}
+
+		// assume we have an Ethernet ARP IPv4 packet.
+		packet_ethernet_arp_ipv4_t* packet_ethernet_arp_ipv4 = (packet_ethernet_arp_ipv4_t*)&buf[0];
+
+		// check size. Note ARP packets can be less than the minimum size of an
+		// Ethernet frame, thus there is additional padding after the ARP data.
+		// Unfortunately, there is no length byte in the Ethernet header, so there
+		// is no simple way to know how much padding there is. However, since we
+		// assume that we always read exactly one Ethernet frame, we can consider
+		// all data after the ARP data as padding and simply ignore this.
+		if (len < sizeof(*packet_ethernet_arp_ipv4))
+		{
+		   return -1;
+		}
+
+		// size is ok, check is payload is a valid ARP IPv4 packet.
+		arp_ethernet_ipv4_t *arp = &(packet_ethernet_arp_ipv4->arp_ipv4);
+		if ( (ARP_HW_TYPE_ETHERNET != arp->hw_type)
+			 && (ARP_PROTOCOL_TYPE_IPv4 != arp->protocol_type)
+			 && (ARP_ETH_HW_ADDR_LEN != arp->hw_addr_len)
+			 && (ARP_PROT_IPv4_ADDR_LEN != arp->prot_addr_len))
+
+		{
+			return -1;
+		}
+
+		// we have an ARP IPv4 packet, check that target IP address matches
+		static_assert( sizeof(arp->target_ip) == sizeof(TAP1_IP_ADDR) );
+		int is_ip_ok = (0 == memcmp( &(arp->target_ip), TAP1_IP_ADDR, sizeof(TAP1_IP_ADDR)));
+
+		return is_ip_ok ? len : -1;
+
+	} // end of read()
+
+#else
+    int Read(vector<char> &buf)
+    {
+          struct pollfd pfd;
+             int len;
+             pfd.fd = tapfd;
+             pfd.events = POLLIN;
+            if (poll(&pfd, 1, 0) <= 0)
+            {
+                return -1;
+            }
+
+            len = (int)read(tapfd, &buf[0], buf.size());
+            if (len > 0)
+            {
+                return len;
+            }
+            else
+            {
+                return -1;
+            }
+
+    }
+#endif
+
+
+    int Write(vector<char> buf)
+    {
     	    return write(tapfd, &buf[0], buf.size());
-      }
+    }
 
-      int Close()
-      {
+    int Close()
+    {
     	  printf("Tap Close called %s\n",__FUNCTION__);
           return close(tapfd);
-      }
+    }
 
 
-      int GetFileDescriptor() const
-      {
+    int GetFileDescriptor() const
+    {
           return tapfd;
-      }
+    }
 
 
-      int getMac(const char* name,char *mac)
-      {
+    int getMac(const char* name,char *mac)
+    {
     	    int sck;
     	    struct ifreq eth;
     	    int retval = -1;
@@ -170,7 +271,7 @@ public:
     	    close(sck);
     	    return 0;
 
-      }
+    }
     std::vector<char> HandlePayload(vector<char> buffer)
     {
         UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
@@ -213,18 +314,18 @@ public:
     }
 
     ~Tap()
-      {
+    {
           close(tapfd);
-      }
+    }
 
 private:
       int tapfd;
       uint8_t mac_tap[6];  /* Save tap mac addr and name for later use for filtering data */
-      char devname[10];
+      char devname[10] = {0};
       void error(const char *msg) const
-      {
+    {
           fprintf(stderr, "%s\n", msg);
-      }
+    }
 
 };
 
