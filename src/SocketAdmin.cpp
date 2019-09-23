@@ -29,7 +29,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
         return;
     }
 
-    Debug_LOG_INFO("ToGuestThread[%1d]: starting...\n", logicalChannel);
+    Debug_LOG_DEBUG("ToGuestThread[%1d]: starting...\n", logicalChannel);
 
     try
     {
@@ -89,7 +89,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
                 // Has the cloud server closed the connection?
                 if (readBytes == 0)
                 {
-                    Debug_LOG_INFO("ToGuestThread[%1d]: closing client connection thread. Read result: %d\n", logicalChannel, readBytes);
+                    Debug_LOG_DEBUG("ToGuestThread[%1d]: closing client connection thread. Read result: %d\n", logicalChannel, readBytes);
                     break;
                 }
             }
@@ -100,7 +100,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
         Debug_LOG_ERROR("ToGuestThread[%1d] exception\n", logicalChannel);
     }
 
-    Debug_LOG_INFO("ToGuestThread[%1d]: closing socket\n", logicalChannel);
+    Debug_LOG_DEBUG("ToGuestThread[%1d]: closing socket\n", logicalChannel);
 
     if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN_CONTROL_CHANNEL) // TODO: remove (there is no control channel thread any more)
     {
@@ -150,11 +150,11 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
             }
         }
 
-        Debug_LOG_INFO("ToGuestThread[%1d]: deactivating the socket; unsolicited: %s \n", logicalChannel, (unsolicited ? "true" : "false"));
+        Debug_LOG_DEBUG("ToGuestThread[%1d]: deactivating the socket; unsolicited: %s \n", logicalChannel, (unsolicited ? "true" : "false"));
         socketAdmin->DeactivateSocket(logicalChannel, unsolicited);
     }
 
-    Debug_LOG_INFO("ToGuestThread[%1d]: completed\n", logicalChannel);
+    Debug_LOG_DEBUG("ToGuestThread[%1d]: completed\n", logicalChannel);
 }
 
 // Possible contexts how to get here:
@@ -218,7 +218,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
 
     lock.unlock();
 
-    Debug_LOG_INFO("ActivateSocket: %d\n", result);
+    Debug_LOG_DEBUG("ActivateSocket: %d\n", result);
 
     if (result  < 0)
     {
@@ -262,7 +262,7 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
 
     lock.unlock();
 
-    Debug_LOG_INFO("DeactivateSocket: %d\n", result);
+    Debug_LOG_DEBUG("DeactivateSocket: %d\n", result);
 
     return result;
 }
