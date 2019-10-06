@@ -1,16 +1,16 @@
 [submodule "uart_socket"]
 	path = uart_socket
-	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/hc/uart_socket.git
+	url = ../../hc/uart_socket.git
 [submodule "seos_libs"]
 	path = seos_libs
-	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/hc/seos_libs.git
+	url = ../../hc/seos_libs.git
 [submodule "TinyFrame"]
 	path = TinyFrame
-	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/ext/tinyframe.git
+	url = ../../ext/tinyframe.git
 [submodule "picotcp"]
 	path = picotcp
-	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/ext/picotcp.git
+	url = ../../ext/picotcp.git
 [submodule "picotcp-bsd"]
 	path = picotcp-bsd
-	url = ssh://git@bitbucket.hensoldt-cyber.systems:7999/ext/picotcp-bsd.git
+	url = ../../ext/picotcp-bsd.git
 	branch = picobsd_changes_mqtt_proxy
