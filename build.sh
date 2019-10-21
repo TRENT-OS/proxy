@@ -1,46 +1,52 @@
 #!/bin/bash -eu
 
-# source dir is where this scriptis located
-DIR_SRC=$(dirname $0)
-PICO_SRC=${DIR_SRC}/picotcp
-PICO_BSD=${DIR_SRC}/picotcp-bsd
+BUILD_SCRIPT_DIR=$(cd `dirname $0` && pwd)
+
+# by convention, the build always happens in a dedicated sub folder of the
+# current folder where the script is invokend in
+BUILD_DIR=build
+
+PICO_SRC=${BUILD_SCRIPT_DIR}/picotcp
+PICO_BSD=${BUILD_SCRIPT_DIR}/picotcp-bsd
 
 if [[ ! -d ${PICO_SRC} ]]; then
-  echo "Please add picotcp as a submodule...!"
-  exit 1
+    echo "Please add picotcp as a submodule!"
+    exit 1
 else
-  (
-    cd ${PICO_SRC}
-    make clean
-    make TAP=1
-  )
-fi
-
-if [[ ! -d ${PICO_BSD} ]]; then
-   echo "Please add picotcp-bsd as a submodule...!"
-   exit 1
-else
-  (
-    cd ${PICO_BSD}
-    make clean
-    make
-  )
-fi
-
-# build dir will be a subdirectory of the current directory, where this script
-# is invoked in.
-BUILD_SRC=$(pwd)/build
-
-if [[ ! -e ${BUILD_SRC} ]]; then
-    mkdir -p ${BUILD_SRC}
     (
-        cd ${BUILD_SRC}
-        cmake -G Ninja ../${DIR_SRC}
+        cd ${PICO_SRC}
+        make clean
+        make TAP=1
     )
 fi
 
-# build project
+if [[ ! -d ${PICO_BSD} ]]; then
+    echo "Please add picotcp-bsd as a submodule!"
+    exit 1
+else
+    (
+        cd ${PICO_BSD}
+        make clean
+        make
+    )
+fi
+
+if [[ -e ${BUILD_DIR} ]] && [[ ! -e ${BUILD_DIR}/rules.ninja ]]; then
+    echo "clean broken build folder and re-initialize it"
+    rm -rf ${BUILD_DIR}
+fi
+
+if [[ ! -e ${BUILD_DIR} ]]; then
+    # use subshell to configure the build
+    (
+        mkdir -p ${BUILD_DIR}
+        cd ${BUILD_DIR}
+        cmake -G Ninja ${BUILD_SCRIPT_DIR}
+    )
+fi
+
+# build in subshell
 (
-    cd ${BUILD_SRC}
+    cd ${BUILD_DIR}
     ninja
 )
