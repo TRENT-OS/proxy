@@ -68,10 +68,10 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<string> *pseudoDevic
 
             if (readBytes > 0)
             {
-                Debug_LOG_INFO("ToGuestThread[%1d]: bytes received from socket: %d.\n", logicalChannel, readBytes);
+                Debug_LOG_DEBUG("ToGuestThread[%1d]: bytes received from socket: %d.\n", logicalChannel, readBytes);
                 if (readBytes >= 2)
                 {
-                    Debug_LOG_INFO("ToGuestThread[%1d]: first bytes: %02x %02x\n", logicalChannel, buffer[0], buffer[1]);
+                    Debug_LOG_DEBUG("ToGuestThread[%1d]: first bytes: %02x %02x\n", logicalChannel, buffer[0], buffer[1]);
                 }
 
                 fflush(stdout);
@@ -289,7 +289,7 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
         }
         else
         {
-            Debug_LOG_INFO("logical channel: %d - bytes written to socket: %d.\n", logicalChannel, writtenBytes);
+            Debug_LOG_DEBUG("logical channel: %d - bytes written to socket: %d.\n", logicalChannel, writtenBytes);
         }
     }
 
