@@ -60,6 +60,7 @@ target_compile_options(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
+    seos_core_api
     seos_libs
     pthread
     ${CMAKE_CURRENT_SOURCE_DIR}/${PICO_BSD_PATH}/build/libpico-bsd.a
