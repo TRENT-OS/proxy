@@ -51,6 +51,7 @@ class OutputLogger : public OutputDevice
     int Write(vector<char> buf)
     {
         cout << string(&buf[0], buf.size());
+        return 0;
     }
 
     int Close()
