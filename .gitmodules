@@ -1,9 +1,6 @@
 [submodule "uart_socket"]
 	path = uart_socket
 	url = ../../hc/uart_socket.git
-[submodule "seos_libs"]
-	path = seos_libs
-	url = ../../hc/seos_libs.git
 [submodule "TinyFrame"]
 	path = TinyFrame
 	url = ../../ext/tinyframe.git

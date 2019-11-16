@@ -6,6 +6,13 @@ BUILD_SCRIPT_DIR=$(cd `dirname $0` && pwd)
 # current folder where the script is invokend in
 BUILD_DIR=build
 
+if [ "$#" -ne 1 ]; then
+    echo "Illegal number of parameters, SANDBOX_PATH needed!"
+    exit 1
+fi
+SANDBOX_PATH=$1
+
+
 PICO_SRC=${BUILD_SCRIPT_DIR}/picotcp
 PICO_BSD=${BUILD_SCRIPT_DIR}/picotcp-bsd
 
@@ -41,7 +48,12 @@ if [[ ! -e ${BUILD_DIR} ]]; then
     (
         mkdir -p ${BUILD_DIR}
         cd ${BUILD_DIR}
-        cmake -G Ninja ${BUILD_SCRIPT_DIR}
+
+        CMAKE_PARAMS=(
+            -DSANDBOX_SOURCE_PATH:STRING=${SANDBOX_PATH}
+        )
+
+        cmake ${CMAKE_PARAMS[@]} -G Ninja ${BUILD_SCRIPT_DIR}
     )
 fi
 
