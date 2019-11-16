@@ -125,13 +125,13 @@ public:
 
 		// read a packet. We assume this will always read exactly one complete
 		// Ethernet packet.
-		int len = (int)read(tapfd, &buf[0], buf.size());
-		if(len <= 0)
+		int ret = (int)read(tapfd, &buf[0], buf.size());
+		if(ret <= 0)
 		{
 			// error reading packet
 			return -1;
 		}
-
+        size_t len = ret;
 
 		ethernet_header_t* eth = (ethernet_header_t*)&buf[0];
 		if (len < sizeof(*eth))

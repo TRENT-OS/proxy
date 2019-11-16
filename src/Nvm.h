@@ -188,7 +188,7 @@ public:
 
         if (length == 0){
             Debug_LOG_INFO("\nLength = 0, initializing!\n");
-            for(int i = 0; i < m_memorySize; i++){
+            for(unsigned int i = 0; i < m_memorySize; i++){
                 file.put(0);
             }
         }
@@ -248,7 +248,7 @@ public:
                 Debug_LOG_ERROR("\nUnsupported NVM command!\n");
         }
 
-        for(int i = 0; i < payloadLength + RESP_HEADER_LEN; i++){
+        for(unsigned int i = 0; i < payloadLength + RESP_HEADER_LEN; i++){
             response.push_back(data[i]);
         }
 
