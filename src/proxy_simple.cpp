@@ -52,7 +52,7 @@ void WriteToGuest(SharedResource<string> *pseudoDevice, unsigned int logicalChan
 
     if(use_pico ==1)
     {
-    	in_the_stack =0;             // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
+        in_the_stack =0;             // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
 
     }
     if (!guestConnector.IsOpen())
@@ -88,8 +88,8 @@ void SendResponse(unsigned int logicalChannel, SocketAdmin *socketAdmin, UartSoc
     else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
     {
         response.resize(8);
-    	response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC_CNF);
-    	memcpy(&response[2],&result[1],6);
+        response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC_CNF);
+        memcpy(&response[2],&result[1],6);
     }
     else
     {
@@ -235,8 +235,8 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, S
     /* Why is this necessary ? */
     if(use_pico ==1)
     {
-    	in_the_stack =0;             // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
-    	pthread_setname_np(pthread_self(), s.c_str());
+        in_the_stack =0;             // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
+        pthread_setname_np(pthread_self(), s.c_str());
     }
 
     try
@@ -314,16 +314,16 @@ void LanServer(SocketAdmin *socketAdmin, unsigned int lanPort)
 // Tick thread of PicoTCP. Thread called every 1 ms
 void PicoTickThread()
 {
-	string s = "PicoTickThread";
-	Debug_LOG_INFO("PicoTickThread: starting.\n");
-	pthread_setname_np(pthread_self(), s.c_str());
-	pico_tick_thread(NULL);
+    string s = "PicoTickThread";
+    Debug_LOG_INFO("PicoTickThread: starting.\n");
+    pthread_setname_np(pthread_self(), s.c_str());
+    pico_tick_thread(NULL);
 }
 
 int main(int argc, const char *argv[])
 {
-	pthread_t ticker;
-	if (argc < 2)
+    pthread_t ticker;
+    if (argc < 2)
     {
         printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal | QEMU_tcp_port [lan port] [cloud_host_name] [cloud_port] [use_pico] [use_tap]\n");
         return 0;
@@ -351,19 +351,19 @@ int main(int argc, const char *argv[])
 
     if(argc > 5)
     {
-    	use_pico = atoi(argv[5]);
+        use_pico = atoi(argv[5]);
     }
 
     int use_tap = 0;
     if(argc > 6)
     {
-    	use_tap = atoi(argv[6]);
+        use_tap = atoi(argv[6]);
     }
 
     printf("Starting mqtt proxy on lan port: %d with pseudo device: %s using cloud host: %s port: %d use_pico:%d, use_tap:%d \n",
-        lanPort, 
+        lanPort,
         pseudoDeviceName.c_str(),
-        hostName.c_str(), 
+        hostName.c_str(),
         port,
         use_pico,
         use_tap);
@@ -374,16 +374,16 @@ int main(int argc, const char *argv[])
      * of the pico library is always used instead of the direct socket calls from the C lib. Hence its important to call this
      * without which nothing works.
      */
-	pico_wrapper_start();
+    pico_wrapper_start();
 
     thread *pPico_tick = NULL;
-  	if(use_pico ==1)
-	{
-  		pPico_tick = new thread{PicoTickThread};
-	}
+    if(use_pico ==1)
+    {
+        pPico_tick = new thread{PicoTickThread};
+    }
 
     /* TBD: is this for overloading / redirecting the socket function calls for PICO TCP? */
-	in_the_stack =1;       // it must be 1 for host system = linux
+    in_the_stack =1;       // it must be 1 for host system = linux
 
     /* Shared resource used because multithreaded access to pseudodevice not working. With QEMU using sockets: may not be needed any more.*/
     SharedResource<string> pseudoDevice{&pseudoDeviceName};
@@ -404,10 +404,10 @@ int main(int argc, const char *argv[])
    SocketCreators socketCreators(hostName, port, use_pico, use_tap);
 
    thread fromGuestThread{
-	   FromGuestThread,
-	   &guestConnector,
-	   &socketAdmin,
-	   &socketCreators};
+       FromGuestThread,
+       &guestConnector,
+       &socketAdmin,
+       &socketCreators};
 
     // Handle the LAN socket
     LanServer(&socketAdmin, lanPort);

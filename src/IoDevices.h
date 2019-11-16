@@ -48,8 +48,8 @@ class OutputLogger : public OutputDevice
     public:
     OutputLogger() {}
 
-    int Write(vector<char> buf) 
-    { 
+    int Write(vector<char> buf)
+    {
         cout << string(&buf[0], buf.size());
     }
 

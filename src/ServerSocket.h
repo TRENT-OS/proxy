@@ -55,14 +55,14 @@ class ServerSocket
             close(sockfd);
             sockfd = -1;
             return;
-        } 
+        }
     }
 
     ~ServerSocket()
     {
         close(sockfd);
     }
-    
+
     int Listen(int backlog)
     {
         return listen(sockfd, backlog);

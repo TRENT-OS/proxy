@@ -134,7 +134,7 @@ private:
         if(!file.is_open()){
             Debug_LOG_ERROR("Could not open file: %s", m_filename);
             data[RESP_RETVAL_INDEX] = RET_FILE_OPEN_ERR;
-            return 0; 
+            return 0;
         }
 
         file.seekg(address, ios::beg);
@@ -145,7 +145,7 @@ private:
 
         data[RESP_RETVAL_INDEX] = ((read_length == length) ? RET_OK : RET_READ_ERR);
         m_cpyIntToBuf(read_length, (unsigned char*)&data[RESP_BYTES_INDEX]);
-        return read_length;         
+        return read_length;
 
     }
 
@@ -232,7 +232,7 @@ public:
             {
                 m_handleGetSizeReq(data);
                 break;
-            }        
+            }
             case CMD_WRITE:
             {
                 std::copy(buffer.begin(), buffer.end(), data);
@@ -240,7 +240,7 @@ public:
                 break;
             }
             case CMD_READ:
-            {   
+            {
                 payloadLength = m_handleReadReq(data, length, address);
                 break;
             }
@@ -252,7 +252,7 @@ public:
             response.push_back(data[i]);
         }
 
-        return response;        
+        return response;
     }
 
     ~Nvm()
