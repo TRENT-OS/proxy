@@ -13,8 +13,8 @@ using namespace std;
 class NvmSocket : public IoDevice
 {
 private:
-    unsigned m_chanNum;
     Nvm* socket;
+    unsigned m_chanNum;
 
 public:
     NvmSocket(unsigned chanNum) : socket(), m_chanNum(chanNum)
