@@ -227,7 +227,6 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, S
 {
     size_t bufSize = 4096;
     vector<char> buffer(bufSize);
-    int readBytes, writtenBytes;
     string s = "FromGuestThread";
 
     Debug_LOG_INFO("FromGuestThread: starting.\n");
@@ -322,7 +321,6 @@ void PicoTickThread()
 
 int main(int argc, const char *argv[])
 {
-    pthread_t ticker;
     if (argc < 2)
     {
         printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal | QEMU_tcp_port [lan port] [cloud_host_name] [cloud_port] [use_pico] [use_tap]\n");
@@ -376,10 +374,9 @@ int main(int argc, const char *argv[])
      */
     pico_wrapper_start();
 
-    thread *pPico_tick = NULL;
     if(use_pico ==1)
     {
-        pPico_tick = new thread{PicoTickThread};
+        new thread{PicoTickThread};
     }
 
     /* TBD: is this for overloading / redirecting the socket function calls for PICO TCP? */

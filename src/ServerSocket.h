@@ -21,7 +21,6 @@ class ServerSocket
     ServerSocket(int port, bool useRebindProtection = true)
     {
         struct sockaddr_in serv_addr;
-        struct hostent *server;
 
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0)
