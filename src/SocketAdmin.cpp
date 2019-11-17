@@ -230,7 +230,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
 
 // Possible contexts how to get here:
 // - to guest threads (LAN, WAN, control channel): at the end of their life time
-int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited) 
+int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
 {
     int result = 0;
 
@@ -266,7 +266,7 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
 
     return result;
 }
-    
+
 OutputDevice *SocketAdmin::GetSocket(unsigned int logicalChannel) const
 {
     // Use GuestListeners to map logical channel to socket.
