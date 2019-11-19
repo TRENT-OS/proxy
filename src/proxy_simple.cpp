@@ -171,8 +171,6 @@ void HandleSocketCommand(unsigned int logicalChannel,
             {
                 socketAdmin->RequestClose(commandLogicalChannel);
                 result[0] = 0;
-                /* The reason for this is not 100% known; at the time it seemed more stable to do it. */
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 2));
             }
             else
             {
