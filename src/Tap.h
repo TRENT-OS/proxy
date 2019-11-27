@@ -103,105 +103,105 @@ class Tap : public InputDevice, public OutputDevice
 public:
     Tap(int fd)
     {
-		tapfd = fd;
+        tapfd = fd;
     }
 
 
 #if (ENABLE_TAP_FILTER == 1)
 
     int Read(vector<char> &buf)
-	{
-		int is_tap0 = (0 == strcmp(devname,"tap0"));
-		int is_tap1 = (0 == strcmp(devname,"tap1"));
+    {
+        int is_tap0 = (0 == strcmp(devname,"tap0"));
+        int is_tap1 = (0 == strcmp(devname,"tap1"));
 
-		struct pollfd pfd;
-		pfd.fd = tapfd;
-		pfd.events = POLLIN;
+        struct pollfd pfd;
+        pfd.fd = tapfd;
+        pfd.events = POLLIN;
 
-		if (poll(&pfd, 1, 0) <= 0)
-		{
-			return -1;
-		}
+        if (poll(&pfd, 1, 0) <= 0)
+        {
+            return -1;
+        }
 
-		// read a packet. We assume this will always read exactly one complete
-		// Ethernet packet.
-		int ret = (int)read(tapfd, &buf[0], buf.size());
-		if(ret <= 0)
-		{
-			// error reading packet
-			return -1;
-		}
+        // read a packet. We assume this will always read exactly one complete
+        // Ethernet packet.
+        int ret = (int)read(tapfd, &buf[0], buf.size());
+        if(ret <= 0)
+        {
+            // error reading packet
+            return -1;
+        }
         size_t len = ret;
 
-		ethernet_header_t* eth = (ethernet_header_t*)&buf[0];
-		if (len < sizeof(*eth))
-		{
-		   return -1;
-		}
+        ethernet_header_t* eth = (ethernet_header_t*)&buf[0];
+        if (len < sizeof(*eth))
+        {
+           return -1;
+        }
 
-		static_assert( sizeof(mac_tap) == sizeof(eth->dest_addr) );
-		int is_mac_ok  = (0 == memcmp(eth->dest_addr, &mac_tap[0], sizeof(mac_tap)));
+        static_assert( sizeof(mac_tap) == sizeof(eth->dest_addr) );
+        int is_mac_ok  = (0 == memcmp(eth->dest_addr, &mac_tap[0], sizeof(mac_tap)));
 
-		// all packets can pass where the destination MAC matches
-		if (is_mac_ok)
-		{
-			return len;
-		}
+        // all packets can pass where the destination MAC matches
+        if (is_mac_ok)
+        {
+            return len;
+        }
 
-		// If we are here, the destination MAC did not match. Drop packet if we are
-		// not tap1
-		if ( !is_tap1)
-		{
-			if(devname[0] != '\0')
-			{
-				assert( is_tap0 ); // fail safe, we must be tap0
-				return -1;
-			}
-		}
+        // If we are here, the destination MAC did not match. Drop packet if we are
+        // not tap1
+        if ( !is_tap1)
+        {
+            if(devname[0] != '\0')
+            {
+                assert( is_tap0 ); // fail safe, we must be tap0
+                return -1;
+            }
+        }
 
-		// ToDo: do we support arbitrary MAC addresses or only those requests for
-		// the broadcast address ff-ff-ff-ff-ff-ff? And why don't we simply allow
-		// all broadcast packets to pass here, not just ARP?
+        // ToDo: do we support arbitrary MAC addresses or only those requests for
+        // the broadcast address ff-ff-ff-ff-ff-ff? And why don't we simply allow
+        // all broadcast packets to pass here, not just ARP?
 
-		// check if this is an Ethernet ARP packet
+        // check if this is an Ethernet ARP packet
 
-		if (ETHERNET_FRAME_TYPE_ARP != ntohs(eth->frame_type)) // Network byte order is Big endian.
-		{
-			return -1;
-		}
+        if (ETHERNET_FRAME_TYPE_ARP != ntohs(eth->frame_type)) // Network byte order is Big endian.
+        {
+            return -1;
+        }
 
-		// assume we have an Ethernet ARP IPv4 packet.
-		packet_ethernet_arp_ipv4_t* packet_ethernet_arp_ipv4 = (packet_ethernet_arp_ipv4_t*)&buf[0];
+        // assume we have an Ethernet ARP IPv4 packet.
+        packet_ethernet_arp_ipv4_t* packet_ethernet_arp_ipv4 = (packet_ethernet_arp_ipv4_t*)&buf[0];
 
-		// check size. Note ARP packets can be less than the minimum size of an
-		// Ethernet frame, thus there is additional padding after the ARP data.
-		// Unfortunately, there is no length byte in the Ethernet header, so there
-		// is no simple way to know how much padding there is. However, since we
-		// assume that we always read exactly one Ethernet frame, we can consider
-		// all data after the ARP data as padding and simply ignore this.
-		if (len < sizeof(*packet_ethernet_arp_ipv4))
-		{
-		   return -1;
-		}
+        // check size. Note ARP packets can be less than the minimum size of an
+        // Ethernet frame, thus there is additional padding after the ARP data.
+        // Unfortunately, there is no length byte in the Ethernet header, so there
+        // is no simple way to know how much padding there is. However, since we
+        // assume that we always read exactly one Ethernet frame, we can consider
+        // all data after the ARP data as padding and simply ignore this.
+        if (len < sizeof(*packet_ethernet_arp_ipv4))
+        {
+           return -1;
+        }
 
-		// size is ok, check is payload is a valid ARP IPv4 packet.
-		arp_ethernet_ipv4_t *arp = &(packet_ethernet_arp_ipv4->arp_ipv4);
-		if ( (ARP_HW_TYPE_ETHERNET != arp->hw_type)
-			 && (ARP_PROTOCOL_TYPE_IPv4 != arp->protocol_type)
-			 && (ARP_ETH_HW_ADDR_LEN != arp->hw_addr_len)
-			 && (ARP_PROT_IPv4_ADDR_LEN != arp->prot_addr_len))
+        // size is ok, check is payload is a valid ARP IPv4 packet.
+        arp_ethernet_ipv4_t *arp = &(packet_ethernet_arp_ipv4->arp_ipv4);
+        if ( (ARP_HW_TYPE_ETHERNET != arp->hw_type)
+             && (ARP_PROTOCOL_TYPE_IPv4 != arp->protocol_type)
+             && (ARP_ETH_HW_ADDR_LEN != arp->hw_addr_len)
+             && (ARP_PROT_IPv4_ADDR_LEN != arp->prot_addr_len))
 
-		{
-			return -1;
-		}
+        {
+            return -1;
+        }
 
-		// we have an ARP IPv4 packet, check that target IP address matches
-		static_assert( sizeof(arp->target_ip) == sizeof(TAP1_IP_ADDR) );
-		int is_ip_ok = (0 == memcmp( &(arp->target_ip), TAP1_IP_ADDR, sizeof(TAP1_IP_ADDR)));
+        // we have an ARP IPv4 packet, check that target IP address matches
+        static_assert( sizeof(arp->target_ip) == sizeof(TAP1_IP_ADDR) );
+        int is_ip_ok = (0 == memcmp( &(arp->target_ip), TAP1_IP_ADDR, sizeof(TAP1_IP_ADDR)));
 
-		return is_ip_ok ? len : -1;
+        return is_ip_ok ? len : -1;
 
-	} // end of read()
+    } // end of read()
 
 #else
     int Read(vector<char> &buf)
@@ -231,12 +231,12 @@ public:
 
     int Write(vector<char> buf)
     {
-    	    return write(tapfd, &buf[0], buf.size());
+            return write(tapfd, &buf[0], buf.size());
     }
 
     int Close()
     {
-    	  printf("Tap Close called %s\n",__FUNCTION__);
+          printf("Tap Close called %s\n",__FUNCTION__);
           return close(tapfd);
     }
 
@@ -249,26 +249,26 @@ public:
 
     int getMac(const char* name,char *mac)
     {
-    	    int sck;
-    	    struct ifreq eth;
-    	    int retval = -1;
+            int sck;
+            struct ifreq eth;
+            int retval = -1;
 
-    	    sck = socket(AF_INET, SOCK_DGRAM, 0);
-    	    if(sck < 0) {
-    	        return retval;
-    	    }
+            sck = socket(AF_INET, SOCK_DGRAM, 0);
+            if(sck < 0) {
+                return retval;
+            }
 
-    	    memset(&eth, 0, sizeof(struct ifreq));
-    	    strcpy(eth.ifr_name, name);
-    	    /* call the IOCTL */
-    	    if (ioctl(sck, SIOCGIFHWADDR, &eth) < 0) {
-    	        perror("ioctl(SIOCGIFHWADDR)");
-    	        return -1;
-    	    }
+            memset(&eth, 0, sizeof(struct ifreq));
+            strcpy(eth.ifr_name, name);
+            /* call the IOCTL */
+            if (ioctl(sck, SIOCGIFHWADDR, &eth) < 0) {
+                perror("ioctl(SIOCGIFHWADDR)");
+                return -1;
+            }
 
-    	    memcpy (mac, &eth.ifr_hwaddr.sa_data, 6);
-    	    close(sck);
-    	    return 0;
+            memcpy (mac, &eth.ifr_hwaddr.sa_data, 6);
+            close(sck);
+            return 0;
 
     }
     std::vector<char> HandlePayload(vector<char> buffer)
