@@ -36,6 +36,8 @@ using namespace std;
 
 #define  ENABLE_TAP_FILTER 1  /* Enable or disable the filter */
 
+#define  FRAME_LENGTH_OFFSET  2 /* First 2 bytes contain frame length*/
+
 /*
 Two problems seen when tap allows all the traffic to flow are
     1.) Chanmux could start to overflow after sometime
@@ -133,7 +135,7 @@ public:
 
         // read a packet. We assume this will always read exactly one complete
         // Ethernet packet.
-        ret = read(tapfd, &buf[0], buf.size());
+        ret = read(tapfd, &buf[FRAME_LENGTH_OFFSET], buf.size());
         // we consider 0 as an error, since poll() above must have returned
         // with a non-zero value if we arrive here. So there must be data.
         if(ret <= 0)
@@ -142,12 +144,17 @@ public:
             return -1;
         }
 
-        size_t len = ret;
+        size_t frame_len = ret;
+
+        // first two byte are the frame length, we follow the network byte
+        // order and use big endian
+        buf[0] = (frame_len >> 8) & 0xFF;
+        buf[1] = frame_len & 0xFF;
 
 #if (ENABLE_TAP_FILTER == 1)
 
-        ethernet_header_t* eth = (ethernet_header_t*)&buf[0];
-        if (len < sizeof(*eth))
+        ethernet_header_t* eth = (ethernet_header_t*)&buf[FRAME_LENGTH_OFFSET];
+        if (frame_len < sizeof(*eth))
         {
            return -1;
         }
@@ -158,7 +165,7 @@ public:
         // all packets can pass where the destination MAC matches
         if (is_mac_ok)
         {
-            return len;
+            return FRAME_LENGTH_OFFSET + frame_len;
         }
 
         // If we are here, the destination MAC did not match. Drop packet if we
@@ -186,7 +193,7 @@ public:
         }
 
         // assume we have an Ethernet ARP IPv4 packet.
-        packet_ethernet_arp_ipv4_t* packet_ethernet_arp_ipv4 = (packet_ethernet_arp_ipv4_t*)&buf[0];
+        packet_ethernet_arp_ipv4_t* packet_ethernet_arp_ipv4 = (packet_ethernet_arp_ipv4_t*)&buf[FRAME_LENGTH_OFFSET];
 
         // check size. Note ARP packets can be less than the minimum size of an
         // Ethernet frame, thus there is additional padding after the ARP data.
@@ -195,7 +202,7 @@ public:
         // since we assume that we always read exactly one Ethernet frame, we
         // can consider all data after the ARP data as padding and simply
         // ignore this.
-        if (len < sizeof(*packet_ethernet_arp_ipv4))
+        if (frame_len < sizeof(*packet_ethernet_arp_ipv4))
         {
            return -1;
         }
@@ -223,7 +230,7 @@ public:
 
 #endif
 
-        return len;
+        return FRAME_LENGTH_OFFSET + frame_len;
     }
 
 
