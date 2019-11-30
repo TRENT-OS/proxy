@@ -107,16 +107,11 @@ public:
     }
 
 
-#if (ENABLE_TAP_FILTER == 1)
-
     int Read(vector<char> &buf)
     {
         int ret;
 
-        int is_tap0 = (0 == strcmp(devname,"tap0"));
-        int is_tap1 = (0 == strcmp(devname,"tap1"));
-
-        struct pollfd pfd = { .fd = tapfd; .events = POLLIN };
+        struct pollfd pfd = { .fd = tapfd, .events = POLLIN };
         ret = poll(&pfd, 1, 0);
         if (ret < 0)
         {
@@ -148,6 +143,9 @@ public:
         }
 
         size_t len = ret;
+
+#if (ENABLE_TAP_FILTER == 1)
+
         ethernet_header_t* eth = (ethernet_header_t*)&buf[0];
         if (len < sizeof(*eth))
         {
@@ -155,7 +153,7 @@ public:
         }
 
         static_assert( sizeof(mac_tap) == sizeof(eth->dest_addr) );
-        int is_mac_ok  = (0 == memcmp(eth->dest_addr, &mac_tap[0], sizeof(mac_tap)));
+        int is_mac_ok = (0 == memcmp(eth->dest_addr, &mac_tap[0], sizeof(mac_tap)));
 
         // all packets can pass where the destination MAC matches
         if (is_mac_ok)
@@ -163,8 +161,10 @@ public:
             return len;
         }
 
-        // If we are here, the destination MAC did not match. Drop packet if we are
-        // not tap1
+        // If we are here, the destination MAC did not match. Drop packet if we
+        // are not tap1
+        int is_tap0 = (0 == strcmp(devname,"tap0"));
+        int is_tap1 = (0 == strcmp(devname,"tap1"));
         if ( !is_tap1)
         {
             if(devname[0] != '\0')
@@ -174,13 +174,13 @@ public:
             }
         }
 
-        // ToDo: do we support arbitrary MAC addresses or only those requests for
-        // the broadcast address ff-ff-ff-ff-ff-ff? And why don't we simply allow
-        // all broadcast packets to pass here, not just ARP?
+        // ToDo: do we support arbitrary MAC addresses or only those requests
+        //       for the broadcast address ff-ff-ff-ff-ff-ff? And why don't we
+        //       simply allow all broadcast packets to pass here, not just ARP?
 
-        // check if this is an Ethernet ARP packet
-
-        if (ETHERNET_FRAME_TYPE_ARP != ntohs(eth->frame_type)) // Network byte order is Big endian.
+        // check if this is an Ethernet ARP packet. Note that network byte
+        // order is big endian, so we need ntohs()  for all integers
+        if (ntohs(ETHERNET_FRAME_TYPE_ARP) != eth->frame_type)
         {
             return -1;
         }
@@ -190,21 +190,24 @@ public:
 
         // check size. Note ARP packets can be less than the minimum size of an
         // Ethernet frame, thus there is additional padding after the ARP data.
-        // Unfortunately, there is no length byte in the Ethernet header, so there
-        // is no simple way to know how much padding there is. However, since we
-        // assume that we always read exactly one Ethernet frame, we can consider
-        // all data after the ARP data as padding and simply ignore this.
+        // Unfortunately, there is no length byte in the Ethernet header, so
+        // there is no simple way to know how much padding there is. However,
+        // since we assume that we always read exactly one Ethernet frame, we
+        // can consider all data after the ARP data as padding and simply
+        // ignore this.
         if (len < sizeof(*packet_ethernet_arp_ipv4))
         {
            return -1;
         }
 
-        // size is ok, check is payload is a valid ARP IPv4 packet.
+        // size is ok, check if payload is a valid ARP IPv4 packet. Note that
+        // network byte order is big endian, so we need ntohs() for all
+        // integers
         arp_ethernet_ipv4_t *arp = &(packet_ethernet_arp_ipv4->arp_ipv4);
-        if ( (ARP_HW_TYPE_ETHERNET != arp->hw_type)
-             && (ARP_PROTOCOL_TYPE_IPv4 != arp->protocol_type)
-             && (ARP_ETH_HW_ADDR_LEN != arp->hw_addr_len)
-             && (ARP_PROT_IPv4_ADDR_LEN != arp->prot_addr_len))
+        if ( (ntohs(ARP_HW_TYPE_ETHERNET) != arp->hw_type)
+             && (ntohs(ARP_PROTOCOL_TYPE_IPv4) != arp->protocol_type)
+             && (ntohs(ARP_ETH_HW_ADDR_LEN) != arp->hw_addr_len)
+             && (ntohs(ARP_PROT_IPv4_ADDR_LEN) != arp->prot_addr_len))
 
         {
             return -1;
@@ -213,35 +216,15 @@ public:
         // we have an ARP IPv4 packet, check that target IP address matches
         static_assert( sizeof(arp->target_ip) == sizeof(TAP1_IP_ADDR) );
         int is_ip_ok = (0 == memcmp( &(arp->target_ip), TAP1_IP_ADDR, sizeof(TAP1_IP_ADDR)));
+        if (!is_ip_ok)
+        {
+            return -1;
+        }
 
-        return is_ip_ok ? len : -1;
-
-    } // end of read()
-
-#else
-    int Read(vector<char> &buf)
-    {
-          struct pollfd pfd;
-             int len;
-             pfd.fd = tapfd;
-             pfd.events = POLLIN;
-            if (poll(&pfd, 1, 0) <= 0)
-            {
-                return -1;
-            }
-
-            len = (int)read(tapfd, &buf[0], buf.size());
-            if (len > 0)
-            {
-                return len;
-            }
-            else
-            {
-                return -1;
-            }
-
-    }
 #endif
+
+        return len;
+    }
 
 
     int Write(vector<char> buf)
