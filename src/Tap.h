@@ -111,28 +111,43 @@ public:
 
     int Read(vector<char> &buf)
     {
+        int ret;
+
         int is_tap0 = (0 == strcmp(devname,"tap0"));
         int is_tap1 = (0 == strcmp(devname,"tap1"));
 
-        struct pollfd pfd;
-        pfd.fd = tapfd;
-        pfd.events = POLLIN;
+        struct pollfd pfd = { .fd = tapfd; .events = POLLIN };
+        ret = poll(&pfd, 1, 0);
+        if (ret < 0)
+        {
+            Debug_LOG_ERROR("poll() failed on '%s', error %d", devname, ret);
+            return -1;
+        }
 
-        if (poll(&pfd, 1, 0) <= 0)
+        // ToDo: we consider 0 as an error, but actually it indicates that the
+        //       call has timed out and no event happened. We should be able to
+        //       handle cases where we read no data gracefully, ie check the
+        //       state and then either abort or call read again
+        //       Furthermore, it seems that we do not really block here but get
+        //       the return code 0 very often, so effectively, it's more a busy
+        //       waiting what we do.
+        if (0 == ret)
         {
             return -1;
         }
 
         // read a packet. We assume this will always read exactly one complete
         // Ethernet packet.
-        int ret = (int)read(tapfd, &buf[0], buf.size());
+        ret = read(tapfd, &buf[0], buf.size());
+        // we consider 0 as an error, since poll() above must have returned
+        // with a non-zero value if we arrive here. So there must be data.
         if(ret <= 0)
         {
-            // error reading packet
+            Debug_LOG_ERROR("read() failed on '%s', error %d", devname, ret);
             return -1;
         }
-        size_t len = ret;
 
+        size_t len = ret;
         ethernet_header_t* eth = (ethernet_header_t*)&buf[0];
         if (len < sizeof(*eth))
         {
