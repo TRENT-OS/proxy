@@ -253,67 +253,94 @@ public:
     }
 
 
-    int getMac(const char* name,char *mac)
+    int getMac(const char* name, uint8_t *mac)
     {
-            int sck;
-            struct ifreq eth;
-            int retval = -1;
+        Debug_LOG_DEBUG("device '%s'", name);
 
-            sck = socket(AF_INET, SOCK_DGRAM, 0);
-            if(sck < 0) {
-                return retval;
-            }
+        int sck = socket(AF_INET, SOCK_DGRAM, 0);
+        if(sck < 0)
+        {
+            Debug_LOG_ERROR("socket() failed, error %d", sck);
+            return -1;
+        }
 
-            memset(&eth, 0, sizeof(struct ifreq));
-            strcpy(eth.ifr_name, name);
-            /* call the IOCTL */
-            if (ioctl(sck, SIOCGIFHWADDR, &eth) < 0) {
-                perror("ioctl(SIOCGIFHWADDR)");
-                return -1;
-            }
-
-            memcpy (mac, &eth.ifr_hwaddr.sa_data, 6);
+        struct ifreq eth = {0};
+        strcpy(eth.ifr_name, name);
+        int ret = ioctl(sck, SIOCGIFHWADDR, &eth);
+        if (ret < 0)
+        {
+            Debug_LOG_ERROR("ioctl(SIOCGIFHWADDR) failed, error %d", ret);
             close(sck);
-            return 0;
+            return -1;
+        }
 
+        close(sck);
+
+        memcpy(mac, &eth.ifr_hwaddr.sa_data, 6);
+
+        // crude hack to keep to allow some filtering later. Actually none of
+        // this should be hard coded, but a feature that can be set for each
+        // TAP channel by whoever is using it.
+        memcpy(mac_tap, mac, 6);
+        strncpy(devname, name, 5);
+
+        // ToDo: why do we do this? Any why does the SEOS NIC driver do the
+        //       same thing also. Seem this is another quirk to be clarified
+        //       one day.
+        mac_tap[5]++;
+
+        Debug_LOG_DEBUG("MAC %02x:%02x:%02x:%02x:%02x:%02x", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+
+        return 0;
     }
 
 
     std::vector<char> HandlePayload(vector<char> buffer)
     {
         UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
-        unsigned int commandLogicalChannel = buffer[1];
-        vector<char> result(7,0);
 
-        if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
+        switch (command)
         {
-            Debug_LOG_DEBUG("command GET_MAC for channel %d", commandLogicalChannel);
-             // handle get mac here.
-            vector<char> mac(6,0);
-            if(commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
+            //-----------------------------------------------------------
+            case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC:
             {
-                getMac("tap0",&mac[0]);
-                memcpy(&mac_tap[0],&mac[0],6);
-                strncpy(devname, "tap0",5);
-                mac_tap[5]++;
-            }
-            else if(commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2)
-            {
-                getMac("tap1",&mac[0]);
-                memcpy(&mac_tap[0],&mac[0],6);
-                strncpy(devname, "tap1",5);
-                mac_tap[5]++;
-            }
-            else
-            {
-                Debug_LOG_ERROR("unsupported channel");
-                result[0] = -1;
+                unsigned int channel = buffer[1];
+                Debug_LOG_DEBUG("command GET_MAC for channel %d", channel);
+                vector<char> result(7,0);
+                vector<uint8_t> mac(6,0);
+
+                switch (channel)
+                {
+                    //-----------------------------------------------------------
+                    case UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW:
+                        getMac("tap0",&mac[0]);
+                        break;
+
+                    //-----------------------------------------------------------
+                    case UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2:
+                        getMac("tap1",&mac[0]);
+                        break;
+
+                    //-----------------------------------------------------------
+                    default:
+                        Debug_LOG_ERROR("unsupported channel %d", channel);
+                        result[0] = -1;
+                        return result;
+                } // end switch(command)
+
+                result[0] = 0;
+                memcpy(&result[1],&mac[0],6);
+                return result;
             }
 
-            Debug_LOG_DEBUG("MAC %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
-            result[0] = 0;
-            memcpy(&result[1],&mac[0],6);
-        }
+            //-----------------------------------------------------------
+            default:
+                break;
+        } // end switch(command)
+
+        Debug_LOG_ERROR("unknown command 0x%02x", command);
+        vector<char> result(1,0);
+        result[0] = -1;
         return result;
     }
 
