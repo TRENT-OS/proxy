@@ -239,6 +239,7 @@ public:
             return write(tapfd, &buf[0], buf.size());
     }
 
+
     int Close()
     {
           printf("Tap Close called %s\n",__FUNCTION__);
@@ -276,6 +277,8 @@ public:
             return 0;
 
     }
+
+
     std::vector<char> HandlePayload(vector<char> buffer)
     {
         UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
@@ -316,15 +319,18 @@ public:
         return result;
     }
 
+
     ~Tap()
     {
           close(tapfd);
     }
 
+
 private:
       int tapfd;
       uint8_t mac_tap[6];  /* Save tap mac addr and name for later use for filtering data */
       char devname[10] = {0};
+
       void error(const char *msg) const
     {
           fprintf(stderr, "%s\n", msg);
