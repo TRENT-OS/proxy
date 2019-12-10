@@ -242,7 +242,7 @@ public:
 
     int Close()
     {
-          printf("Tap Close called %s\n",__FUNCTION__);
+          Debug_LOG_DEBUG("Tap Close called");
           return close(tapfd);
     }
 
@@ -284,12 +284,10 @@ public:
         UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
         unsigned int commandLogicalChannel = buffer[1];
         vector<char> result(7,0);
-        Debug_LOG_DEBUG("%s:%d", __func__, __LINE__);
 
         if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
         {
-            Debug_LOG_DEBUG("%s:%d", __func__, __LINE__);
-            printf("Get mac  command rx:\n");
+            Debug_LOG_DEBUG("command GET_MAC for channel %d", commandLogicalChannel);
              // handle get mac here.
             vector<char> mac(6,0);
             if(commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
@@ -308,11 +306,11 @@ public:
             }
             else
             {
-                printf("%s() Unsupported Logical channel\n",__FUNCTION__);
+                Debug_LOG_ERROR("unsupported channel");
                 result[0] = -1;
             }
 
-            printf("Mac read = %x %x %x %x %x %x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+            Debug_LOG_DEBUG("MAC %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
             result[0] = 0;
             memcpy(&result[1],&mac[0],6);
         }
@@ -333,7 +331,7 @@ private:
 
       void error(const char *msg) const
     {
-          fprintf(stderr, "%s\n", msg);
+          Debug_LOG_ERROR("%s", msg);
     }
 
 };
