@@ -141,7 +141,6 @@ void HandleSocketCommand(unsigned int logicalChannel,
 
         UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
         unsigned int commandLogicalChannel = buffer[1];
-        //int result;
         vector<char> result(7,0);
 
         Debug_LOG_INFO("Handle socket command: cmd: %s channel: %d\n",
