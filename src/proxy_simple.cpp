@@ -129,13 +129,14 @@ void HandleSocketCommand(unsigned int logicalChannel,
                          vector<char> &buffer,
                          SocketCreators* socketCreators)
 {
-    Debug_LOG_DEBUG("%s: Handling channel %d", __func__, logicalChannel);
+    Debug_LOG_DEBUG("[channel %u] handle command", logicalChannel);
 
     if (IsControlChannel(logicalChannel))
     {
         if (buffer.size() != 2)
         {
-            Debug_LOG_ERROR("FromGuestThread: incoming socket command with wrong length.\n");
+            Debug_LOG_ERROR("[channel %u] invalid control channel buffer size %lu",
+                            logicalChannel, buffer.size());
             return;
         }
 
@@ -143,9 +144,11 @@ void HandleSocketCommand(unsigned int logicalChannel,
         unsigned int commandLogicalChannel = buffer[1];
         vector<char> result(7,0);
 
-        Debug_LOG_INFO("Handle socket command: cmd: %s channel: %d\n",
-            UartSocketCommand(command).c_str(),
-            commandLogicalChannel);
+        Debug_LOG_INFO("[channel %u] control command for channel %d: %d (%s)",
+            logicalChannel,
+            commandLogicalChannel,
+            command,
+            UartSocketCommand(command).c_str());
 
         if (commandLogicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
         {
@@ -196,7 +199,7 @@ void HandleSocketCommand(unsigned int logicalChannel,
         }
         else
         {
-            Debug_LOG_ERROR("%s: socket object not found channel %d", __func__, logicalChannel);
+            Debug_LOG_ERROR("[channel %u] socket object not found", logicalChannel);
         }
     }
     else
