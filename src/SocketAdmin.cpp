@@ -275,25 +275,26 @@ OutputDevice *SocketAdmin::GetSocket(unsigned int logicalChannel) const
 
 void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer)
 {
-    int writtenBytes;
     OutputDevice *outputDevice = GetSocket(logicalChannel);
 
-    lock.lock();
-
-    if (outputDevice != nullptr)
+    if (nullptr == outputDevice)
     {
-        writtenBytes = outputDevice->Write(buffer);
-        if (writtenBytes < 0)
-        {
-            Debug_LOG_ERROR("logical channel: %d - socket write failed; %s.\n", logicalChannel, strerror(errno));
-        }
-        else
-        {
-            Debug_LOG_DEBUG("logical channel: %d - bytes written to socket: %d.\n", logicalChannel, writtenBytes);
-        }
+        return;
     }
 
+    lock.lock();
+    int ret = outputDevice->Write(buffer);
     lock.unlock();
+
+    if (ret < 0)
+    {
+        Debug_LOG_ERROR("[channel %u] write() failed, error %d",
+                        logicalChannel, ret);
+        return;
+    }
+
+    Debug_LOG_DEBUG("[channel %u] write() successful, return value %d",
+                    logicalChannel, ret);
 }
 
 bool SocketAdmin::CloseWasRequested(unsigned int logicalChannel)
