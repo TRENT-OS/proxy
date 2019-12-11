@@ -117,7 +117,7 @@ public:
         ret = poll(&pfd, 1, 0);
         if (ret < 0)
         {
-            Debug_LOG_ERROR("poll() failed on '%s', error %d", devname, ret);
+            Debug_LOG_ERROR("[%s] poll() failed, error %d", devname, ret);
             return -1;
         }
 
@@ -140,7 +140,7 @@ public:
         // with a non-zero value if we arrive here. So there must be data.
         if(ret <= 0)
         {
-            Debug_LOG_ERROR("read() failed on '%s', error %d", devname, ret);
+            Debug_LOG_ERROR("[%s] read() failed, error %d", devname, ret);
             return -1;
         }
 
