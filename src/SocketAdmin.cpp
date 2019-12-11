@@ -276,9 +276,9 @@ OutputDevice *SocketAdmin::GetSocket(unsigned int logicalChannel) const
 void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer)
 {
     OutputDevice *outputDevice = GetSocket(logicalChannel);
-
     if (nullptr == outputDevice)
     {
+        Debug_LOG_ERROR("[channel %u] no output device", logicalChannel);
         return;
     }
 
@@ -288,13 +288,10 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
 
     if (ret < 0)
     {
-        Debug_LOG_ERROR("[channel %u] write() failed, error %d",
+        Debug_LOG_ERROR("[channel %u] otuput device write failed, error %d",
                         logicalChannel, ret);
         return;
     }
-
-    Debug_LOG_DEBUG("[channel %u] write() successful, return value %d",
-                    logicalChannel, ret);
 }
 
 bool SocketAdmin::CloseWasRequested(unsigned int logicalChannel)

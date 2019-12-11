@@ -129,8 +129,6 @@ void HandleSocketCommand(unsigned int logicalChannel,
                          vector<char> &buffer,
                          SocketCreators* socketCreators)
 {
-    Debug_LOG_DEBUG("[channel %u] handle command", logicalChannel);
-
     if (IsControlChannel(logicalChannel))
     {
         if (buffer.size() != 2)
@@ -190,17 +188,8 @@ void HandleSocketCommand(unsigned int logicalChannel,
         SendResponse(logicalChannel, socketAdmin, command, result);
     }
     else if (IsDataChannel(logicalChannel))
-    {   // all the code above should at a certain point move to some payload
-        // handler and leave in this 2 lines the actual implementation
-        OutputDevice *socket = socketAdmin->GetSocket(logicalChannel);
-        if (socket)
-        {
-            socketAdmin->SendDataToSocket(logicalChannel, buffer);
-        }
-        else
-        {
-            Debug_LOG_ERROR("[channel %u] socket object not found", logicalChannel);
-        }
+    {
+        socketAdmin->SendDataToSocket(logicalChannel, buffer);
     }
     else
     {   // Command Channel
