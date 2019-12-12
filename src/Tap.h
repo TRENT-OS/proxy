@@ -97,9 +97,6 @@ const ipv4_addr_t TAP1_IP_ADDR = {192,168,82,92};
 #endif
 
 
-#define TUN_MTU 1024
-
-
 class Tap : public InputDevice, public OutputDevice
 {
 public:
