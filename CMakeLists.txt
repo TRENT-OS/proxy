@@ -57,6 +57,7 @@ target_include_directories(${PROJECT_NAME}
 target_compile_options(${PROJECT_NAME}
     PRIVATE
         -pthread
+        -Wno-delete-non-virtual-dtor
 )
 
 target_link_libraries(${PROJECT_NAME}
