@@ -31,12 +31,13 @@
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
 #include "LibDebug/Debug.h"
+#include "seos_ethernet.h"
 
 using namespace std;
 
 #define  ENABLE_TAP_FILTER 1  /* Enable or disable the filter */
 
-#define  FRAME_LENGTH_OFFSET  2 /* First 2 bytes contain frame length*/
+#define  FRAME_LENGTH_IN_BYTES         2 /* First 2 bytes contain frame length*/
 
 /*
 Two problems seen when tap allows all the traffic to flow are
@@ -103,6 +104,7 @@ const ipv4_addr_t TAP1_IP_ADDR = {192,168,82,92};
 #endif
 
 
+
 class Tap : public InputDevice, public OutputDevice
 {
 public:
@@ -138,7 +140,7 @@ public:
 
         // read a packet. We assume this will always read exactly one complete
         // Ethernet packet.
-        ret = read(tapfd, &buf[FRAME_LENGTH_OFFSET], buf.size());
+        ret = read(tapfd, &buf[FRAME_LENGTH_IN_BYTES], buf.size());
         // we consider 0 as an error, since poll() above must have returned
         // with a non-zero value if we arrive here. So there must be data.
         if(ret <= 0)
@@ -156,7 +158,7 @@ public:
 
 #if (ENABLE_TAP_FILTER == 1)
 
-        ethernet_header_t* eth = (ethernet_header_t*)&buf[FRAME_LENGTH_OFFSET];
+        ethernet_header_t* eth = (ethernet_header_t*)&buf[FRAME_LENGTH_IN_BYTES];
         if (frame_len < sizeof(*eth))
         {
            return -1;
@@ -168,7 +170,7 @@ public:
         // all packets can pass where the destination MAC matches
         if (is_mac_ok)
         {
-            return FRAME_LENGTH_OFFSET + frame_len;
+            return FRAME_LENGTH_IN_BYTES + frame_len;
         }
 
         // If we are here, the destination MAC did not match. Drop packet if we
@@ -196,7 +198,7 @@ public:
         }
 
         // assume we have an Ethernet ARP IPv4 packet.
-        packet_ethernet_arp_ipv4_t* packet_ethernet_arp_ipv4 = (packet_ethernet_arp_ipv4_t*)&buf[FRAME_LENGTH_OFFSET];
+        packet_ethernet_arp_ipv4_t* packet_ethernet_arp_ipv4 = (packet_ethernet_arp_ipv4_t*)&buf[FRAME_LENGTH_IN_BYTES];
 
         // check size. Note ARP packets can be less than the minimum size of an
         // Ethernet frame, thus there is additional padding after the ARP data.
@@ -233,14 +235,197 @@ public:
 
 #endif
 
-        return FRAME_LENGTH_OFFSET + frame_len;
+        return FRAME_LENGTH_IN_BYTES + frame_len;
     }
 
 
     int Write(vector<char> buf)
     {
-            return write(tapfd, &buf[0], buf.size());
-    }
+        // if we return 0 everything was ok, -1 indicated an error
+
+        size_t buffer_offset = 0;
+        size_t buffer_len = buf.size();
+        Debug_LOG_DEBUG("[%s] incomming len %zu", devname, buffer_len);
+
+        // the frame prtocoll is: 2 byte frame length | frame data | .....
+
+        // state machine
+        static enum
+        {
+            RECEIVE_ERROR = 0,
+            RECEIVE_FRAME_START,
+            RECEIVE_FRAME_LEN,
+            RECEIVE_FRAME_DATA
+        } state = RECEIVE_FRAME_START;
+        static size_t size_len = 0;
+        static size_t frame_len = 0;
+        static size_t frame_offset = 0;
+        static int doDropFrame = true;
+        static uint8_t out_buffer[ETHERNET_FRAME_MAX_SIZE];
+
+        int partialFrame = (frame_offset > 0);
+        if (partialFrame)
+        {
+            Debug_ASSERT( RECEIVE_FRAME_DATA == state );
+        }
+
+        for(;;)
+        {
+            switch (state)
+            {
+            //----------------------------------------------------------------------
+            case RECEIVE_ERROR:
+                Debug_LOG_ERROR("[%s] state RECEIVE_ERROR, drop %zu bytes",
+                                devname, buffer_len);
+                return -1;
+
+            //----------------------------------------------------------------------
+            case RECEIVE_FRAME_START:
+                size_len = 2;
+                frame_len = 0;
+                frame_offset = 0;
+                state = RECEIVE_FRAME_LEN;
+                break; // could also fall through
+
+            //----------------------------------------------------------------------
+            case RECEIVE_FRAME_LEN:
+                Debug_ASSERT( 0 != size_len );
+
+                do
+                {
+                    if (0 == buffer_len)
+                    {
+                        return 0;
+                    }
+
+                    // read a byte
+                    uint8_t len_byte = buf[buffer_offset];
+                    buffer_offset++;
+                    buffer_len--;
+
+                    // frame length is send in network byte order (big endian),
+                    // so we build the value as: 0x0000 -> 0x00AA -> 0xAABB
+                    frame_len <<= 8;
+                    frame_len |= len_byte;
+
+                } while ( 0 != --size_len );
+
+                // we have read the length, make some sanity check and then
+                // change state to read the frame data
+                Debug_LOG_DEBUG("[%s] expecting ethernet frame of %zu bytes",
+                                devname, frame_len);
+
+                // if the frame is too big for our buffer, then the only option
+                // is dropping it
+                doDropFrame = (frame_len > ETHERNET_FRAME_MAX_SIZE);
+                if (doDropFrame)
+                {
+                    Debug_LOG_WARNING("[%s] frame length %zu exceeds max length",
+                                      devname, frame_len);
+                }
+
+                // is there any frame data?
+                if (0 == frame_len)
+                {
+                    state = RECEIVE_FRAME_START;
+                    break;
+                }
+
+                Debug_ASSERT( 0 == frame_offset );
+                state = RECEIVE_FRAME_DATA;
+                break; // could also fall through
+
+            //----------------------------------------------------------------------
+            case RECEIVE_FRAME_DATA:
+            {
+                Debug_ASSERT( buffer_offset + buffer_len <= buf.size() );
+                Debug_ASSERT( 0 == size_len );
+                Debug_ASSERT( 0 != frame_len );
+
+                if (0 == buffer_len)
+                {
+                    return 0;
+                }
+
+                size_t chunk_len = frame_len - frame_offset;
+                if (chunk_len > buffer_len)
+                {
+                    chunk_len = buffer_len;
+                    partialFrame = true;
+                }
+
+                Debug_ASSERT( 0 != chunk_len );
+
+                if ((!doDropFrame) && partialFrame)
+                {
+                    memcpy(&out_buffer[frame_offset],
+                           &buf[buffer_offset],
+                           chunk_len);
+                }
+
+                Debug_ASSERT( buffer_len >= chunk_len );
+                buffer_len -= chunk_len;
+                buffer_offset += chunk_len;
+                frame_offset += chunk_len;
+
+                // check if we have received the full frame. If not then we
+                // are done
+                if (frame_offset < frame_len)
+                {
+                    Debug_LOG_ERROR("[%s] partial frame received, %zu of %zu bytes",
+                                    devname, frame_offset, frame_len);
+                    Debug_ASSERT( partialFrame );
+                    Debug_ASSERT( 0 == buffer_len );
+                    return 0;
+                }
+
+                // we have received a full frame.
+                if (!doDropFrame)
+                {
+                    void* b = out_buffer;
+                    if (!partialFrame)
+                    {
+                        Debug_ASSERT( buffer_offset >= frame_len );
+                        b = &buf[buffer_offset - frame_len];
+                    }
+
+                    Debug_LOG_INFO("[%s] writing frame of %zu bytes",
+                                    devname, frame_len);
+                    int ret = write(tapfd, b, frame_len);
+                    if (ret < 0)
+                    {
+                        Debug_LOG_ERROR("[%s] write() failed for frame, error %d",
+                                        devname, ret);
+                        state = RECEIVE_ERROR;
+                        break;
+                    }
+
+                    if ( (unsigned)ret != frame_len)
+                    {
+                        Debug_LOG_ERROR("[%s] write() did write only %d",
+                                        devname, ret);
+                        state = RECEIVE_ERROR;
+                        break;
+                    }
+                }
+
+                state = RECEIVE_FRAME_START;
+            }
+            break;
+
+            //----------------------------------------------------------------------
+            default:
+                Debug_LOG_ERROR("[%s] invalid state %d, drop %zu bytes",
+                                devname, state, buffer_len);
+                state = RECEIVE_ERROR;
+                Debug_ASSERT(false); // we should never be here
+                break;
+            } // end switch (state)
+        } // end for(;;)
+
+        return 0;
+    } // end of write
+
 
 
     int Close()
@@ -355,11 +540,11 @@ public:
 
 
 private:
-      int tapfd;
-      uint8_t mac_tap[6];  /* Save tap mac addr and name for later use for filtering data */
-      char devname[10] = {0};
+    int tapfd;
+    uint8_t mac_tap[6];  /* Save tap mac addr and name for later use for filtering data */
+    char devname[10] = {0};
 
-      void error(const char *msg) const
+    void error(const char *msg) const
     {
           Debug_LOG_ERROR("%s", msg);
     }
