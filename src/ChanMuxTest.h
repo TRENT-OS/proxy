@@ -18,8 +18,9 @@
 #define CMD_TEST_FULL_DUPLEX    1
 
 #define MAX_MSG_LEN             4096
-#define RESP_HEADER_LEN         0
 
+#define REQ_COMM_INDEX          0
+#define REQ_ARG_INDEX           (REQ_COMM_INDEX + 1)
 //RETURN MESSAGES
 #define RET_OK                  0
 
@@ -66,7 +67,9 @@ public:
 
     std::vector<char> HandlePayload(vector<char> buffer)
     {
-        uint32_t length, address, payloadLength = 0;
+        static uint8_t lastTestResult = 0;
+
+        uint32_t payloadLength = 0;
         vector<char> response;
         char data[MAX_MSG_LEN];
 
@@ -76,17 +79,29 @@ public:
             {
                 Debug_LOG_DEBUG("%s: got a CMD_TEST_OVERFLOW", __func__);
                 payloadLength = MAX_MSG_LEN;
+
+                break;
+            }
+            case CMD_TEST_FULL_DUPLEX:
+            {
+                Debug_LOG_DEBUG("%s: got a CMD_TEST_FULL_DUPLEX", __func__);
+                payloadLength =
+                    m_cpyBufToInt((unsigned char*) &buffer[REQ_ARG_INDEX]);
+
+                for (unsigned int i = 0; i < payloadLength; i++)
+                {
+                    data[i] = buffer[REQ_ARG_INDEX + sizeof(payloadLength) + i];
+                }
                 break;
             }
             default:
                 Debug_LOG_ERROR("\nUnsupported ChanMuxTest command!\n");
         }
-
-        for (unsigned int i = 0; i < payloadLength; i++)
+        for (unsigned int i = 0; i < ((payloadLength < sizeof(data)) ?
+                payloadLength : sizeof(data)); i++)
         {
             response.push_back(data[i]);
         }
-
         return response;
     }
 
