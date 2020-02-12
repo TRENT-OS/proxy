@@ -49,13 +49,13 @@ public:
 
     int Read(vector<char> &buf)
     {
-        Debug_LOG_TRACE("%s", __func__);
+        Debug_LOG_WARNING("%s: not supported", __func__);
         return 0; // This is a command channel not a stream
     }
 
     int Write(vector<char> buf)
     {
-        Debug_LOG_TRACE("%s", __func__);
+        Debug_LOG_WARNING("%s: not supported", __func__);
         return 0;
     }
 
@@ -71,7 +71,6 @@ public:
 
         uint32_t payloadLength = 0;
         vector<char> response;
-        char data[MAX_MSG_LEN];
 
         switch (buffer[REQ_COMM_INDEX])
         {
@@ -79,6 +78,7 @@ public:
             {
                 Debug_LOG_DEBUG("%s: got a CMD_TEST_OVERFLOW", __func__);
                 payloadLength = MAX_MSG_LEN;
+                response.insert(response.begin(), payloadLength, 0);
 
                 break;
             }
@@ -87,20 +87,15 @@ public:
                 Debug_LOG_DEBUG("%s: got a CMD_TEST_FULL_DUPLEX", __func__);
                 payloadLength =
                     m_cpyBufToInt((unsigned char*) &buffer[REQ_ARG_INDEX]);
+                size_t offs = REQ_ARG_INDEX + sizeof(payloadLength);
 
-                for (unsigned int i = 0; i < payloadLength; i++)
-                {
-                    data[i] = buffer[REQ_ARG_INDEX + sizeof(payloadLength) + i];
-                }
+                response.insert(response.begin(),
+                                buffer.begin() + offs,
+                                buffer.begin() + offs + payloadLength);
                 break;
             }
             default:
                 Debug_LOG_ERROR("\nUnsupported ChanMuxTest command!\n");
-        }
-        for (unsigned int i = 0; i < ((payloadLength < sizeof(data)) ?
-                payloadLength : sizeof(data)); i++)
-        {
-            response.push_back(data[i]);
         }
         return response;
     }
