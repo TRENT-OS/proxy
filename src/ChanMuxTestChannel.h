@@ -10,17 +10,17 @@
 
 using namespace std;
 
-class ChanMuxTestSocket : public IoDevice
+class ChanMuxTestChannel : public IoDevice
 {
 private:
     ChanMuxTest* socket;
 
 public:
-    ChanMuxTestSocket() : socket()
+    ChanMuxTestChannel() : socket()
     {
     }
 
-    ~ChanMuxTestSocket()
+    ~ChanMuxTestChannel()
     {
         if (socket != nullptr)
         {
