@@ -1,11 +1,13 @@
-# mqtt_proxy_demo
+# proxy\_app
 
-The host proxy application for the High Assurance Router (HAR) running in seL4 in QEMU.
-This proxy implements the following functionality:
+The host proxy application for SEOS runnuing in QEMU.
+This proxy implements the communication channels to the host machine in order to. The inner working mechanism to mux-demux channels is based on ChanMux/HDLC (https://wiki.hensoldt-cyber.systems/display/HEN/SEOS+ChanMUX%2C+UART+Proxy+and+Host-Bridge)
 
-* it opens a server side socket and forwards all incoming traffic from accepted connections to the HAR using the uart socket logical channel id 0x00.
-* it opens a socket to the Azure Cloud and forwards all incoming traffic to the HAR using the uart socket logical channel id 0x01.
-* it listens to all traffic arriving from the HAR on uart socket logical channel id 0x01 and forwards it to the Azure Cloud.
+* simulate Non Volatile Memory
+* access TAP interfaces
+* test ChanMux
+* route MQTT packets (HAR demo)
+
 
 ## Getting Started
 
@@ -20,15 +22,15 @@ The project builds a Linux command line utility
 ### Build steps
 
     # create workspace folder
-    mkdir mqtt_proxy_demo
-    cd mqtt_proxy_demo
+    mkdir proxy_app
+    cd proxy_app
 
     # check out into folder "src"
-    git clone --recursive ssh://git@bitbucket.hensoldt-cyber.systems:7999/hc/mqtt_proxy_demo.git src
+    git clone --recursive ssh://git@bitbucket.hensoldt-cyber.systems:7999/hc/proxy_app.git src
 
     # run build, will create a folder "build" with the application binary
     src/build.sh
 
     # run application and connect to QEMU on TCP port 4444, listen on local
     # port 7999 for MQTT packets, open cloud connection to 51.144.118.31:8883
-    build/mqtt_proxy 4444 7999 51.144.118.31 8883
+    build/proxy_app 4444 7999 51.144.118.31 8883

@@ -28,7 +28,7 @@ set(PICO_BSD_PATH "picotcp-bsd")
 
 #-------------------------------------------------------------------------------
 
-project(mqtt_proxy CXX)
+project(proxy_app CXX)
 
 add_executable(${PROJECT_NAME}
     uart_socket/src/uart_hdlc.c
