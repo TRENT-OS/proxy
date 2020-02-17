@@ -12,8 +12,13 @@
 #include "utils.h"
 #include <chrono>
 #include <thread>
+#include <unistd.h>
+
+
 
 #include "SocketCreators.h"
+
+#define LAN_PORT 7999
 
 int use_pico =0; // By default disable picotcp
 extern __thread int in_the_stack;
@@ -309,79 +314,75 @@ void PicoTickThread()
     pico_tick_thread(NULL);
 }
 
-int main(int argc, const char *argv[])
+int main(int argc, char *argv[])
 {
-    if (argc < 2)
-    {
-        printf("Usage: mqtt_proxy_demo QEMU_pseudo_terminal | QEMU_tcp_port [lan port] [cloud_host_name] [cloud_port] [use_pico] [use_tap]\n");
-        return 0;
-    }
-    
-    DeviceType type;
-
-    string deviceType{argv[1]};
-    
-    if (deviceType == "-s")
-    {
-        type = DEVICE_TYPE_SOCKET;
-    }
-    else if (deviceType == "-p")
-    {
-        type = DEVICE_TYPE_PSEUDO_CONSOLE;
-    }
-    else if (deviceType == "-t")
-    {
-        type = DEVICE_TYPE_RAW_SERIAL;
-        
-    }
-    else
-    {
-        printf("Unknown Device parameter %s\n", deviceType.c_str());
-        printf("Possible options are: -p (pty), -t (tty), -s (tcp socket)\n");
-        return -1;
-    }
-
-    if (argc < 3) {
-        printf("Port or device path needs to be specified\n");
-        return -1;
-    }
-
-    string pseudoDeviceName{argv[2]};
-    
-
-    int lanPort = SERVER_PORT;
-    if (argc > 3)
-    {
-        lanPort = atoi(argv[3]);
-    }
-
-    string hostName {SERVER_NAME};
-    if (argc > 4)
-    {
-        hostName = string{argv[4]};
-    }
-
+    // set default values
+    DeviceType type = DEVICE_TYPE_SOCKET;
+    string connectionType = "TCP";
+    string connectionParam = "4444";
+    int lanPort = LAN_PORT;
     int port = SERVER_PORT;
-    if (argc > 5)
-    {
-        port = atoi(argv[5]);
-    }
-
-    if(argc > 6)
-    {
-    	use_pico = atoi(argv[6]);
-    }
-
+    string hostName {SERVER_NAME};
     int use_tap = 0;
-    if(argc > 7)
+
+    int opt;
+    char delim[] = ":";
+    while((opt = getopt(argc, argv, "c:l:p:t:d:h")) != -1)
     {
-    	use_tap = atoi(argv[7]);
+        switch(opt)
+        {
+            case 'c':
+                connectionType = strtok(optarg, delim);
+                if (connectionType == "TCP")
+                {
+                    type = DEVICE_TYPE_SOCKET;
+                }
+                else if (connectionType == "PTY")
+                {
+                    type = DEVICE_TYPE_PSEUDO_CONSOLE;
+                }
+                else if (connectionType == "UART")
+                {
+                    type = DEVICE_TYPE_RAW_SERIAL;
+
+                }
+                else
+                {
+                    printf("Unknown Device parameter %s\n", connectionType.c_str());
+                    printf("Possible options are: 'UART', 'PTY', 'TCP'\n");
+                    break;
+                }
+                connectionParam = strtok(NULL, delim);
+                break;
+            case 'l':
+                lanPort = atoi(optarg);
+                break;
+            case 'p':
+                port = atoi(optarg);
+                break;
+            case 't':
+                use_tap = atoi(optarg);
+                break;
+            case 'd':
+                hostName = optarg;
+                break;
+            case 'h':
+                printf("Usage: -c [<connectionType>:<Param>] -l [lan port] -d [cloud_host_name] -p [cloud_port] -t [tap_number]\n");
+                return 0;
+            case '?':
+                printf("unknown option: %c\n", optopt);
+                break;
+        }
+    }
+    // optind is for the extra arguments which are not parsed
+    for(; optind < argc; optind++){
+        printf("extra arguments: %s\n", argv[optind]);
     }
 
-    printf("Starting mqtt proxy on lan port: %d of type %s with pseudo device: %s using cloud host: %s port: %d use_pico:%d, use_tap:%d \n",
+    printf("Starting mqtt proxy on lan port: %d of type %s with connection param: %s using cloud host: %s port: %d use_pico:%d, use_tap:%d \n",
         lanPort,
-        deviceType.c_str(),
-        pseudoDeviceName.c_str(),
+        connectionType.c_str(),
+        connectionParam.c_str(),
         hostName.c_str(),
         port,
         use_pico,
@@ -404,7 +405,7 @@ int main(int argc, const char *argv[])
     in_the_stack =1;       // it must be 1 for host system = linux
 
     /* Shared resource used because multithreaded access to pseudodevice not working. With QEMU using sockets: may not be needed any more.*/
-    PseudoDevice parsedDevice{&pseudoDeviceName, &type};
+    PseudoDevice parsedDevice{&connectionParam, &type};
     SharedResource<PseudoDevice> pseudoDevice{&parsedDevice};
 
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
