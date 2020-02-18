@@ -377,7 +377,7 @@ int main(int argc, char *argv[])
         printf("extra arguments: %s\n", argv[optind]);
     }
 
-    printf("Starting mqtt proxy on lan port: %d of type %s with connection param: %s using cloud host: %s port: %d use_pico:%d, use_tap:%d \n",
+    printf("Starting proxy app on lan port: %d of type %s with connection param: %s using cloud host: %s port: %d use_pico:%d, use_tap:%d \n",
         lanPort,
         connectionType.c_str(),
         connectionParam.c_str(),
