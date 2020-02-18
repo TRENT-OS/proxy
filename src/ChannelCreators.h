@@ -41,6 +41,12 @@ public:
                     new TapChannelCreator("tap1");
 
         }
+        creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM] =
+                new NvmChannelCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM);
+
+        creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM2] =
+                new NvmChannelCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM2);
+
         creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CM_TEST_1] =
                 new ChanMuxTestChannelCreator();
 
