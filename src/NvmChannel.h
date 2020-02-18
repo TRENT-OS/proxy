@@ -10,39 +10,39 @@
 
 using namespace std;
 
-class NvmSocket : public IoDevice
+class NvmChannel : public IoDevice
 {
 private:
-    Nvm* socket;
+    Nvm* channel;
     unsigned m_chanNum;
 
 public:
-    NvmSocket(unsigned chanNum) : socket(), m_chanNum(chanNum)
+    NvmChannel(unsigned chanNum) : channel(), m_chanNum(chanNum)
     {
     }
 
-    ~NvmSocket()
+    ~NvmChannel()
     {
-        if (socket != nullptr)
+        if (channel != nullptr)
         {
-            delete socket;
+            delete channel;
         }
     }
 
     int Create()
     {
-    	socket = new Nvm(m_chanNum);
+    	channel = new Nvm(m_chanNum);
         return 0;
     }
 
     OutputDevice *GetOutputDevice()
     {
-        return socket;
+        return channel;
     }
 
     InputDevice *GetInputDevice()
     {
-        return socket;
+        return channel;
     }
 };
 

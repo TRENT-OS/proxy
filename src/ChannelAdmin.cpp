@@ -1,5 +1,5 @@
 
-#include "SocketAdmin.h"
+#include "ChannelAdmin.h"
 #include "GuestConnector.h"
 #include "LibDebug/Debug.h"
 #include "MqttCloud.h"
@@ -7,7 +7,7 @@
 
 extern __thread int in_the_stack;
 extern int use_pico;
-void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<PseudoDevice> *pseudoDevice, unsigned int logicalChannel, InputDevice *socket)
+void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pseudoDevice, unsigned int logicalChannel, InputDevice *channel)
 {
 
     size_t bufSize = 2048;    //256;
@@ -36,11 +36,11 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<PseudoDevice> *pseud
         while (true)
         {
             /* This is a blocking call with a timeout. */
-            readBytes = socket->Read(buffer);
+            readBytes = channel->Read(buffer);
 
             if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
             {
-                if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
+                if (channelAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
                 {
                    // Leave the endless loop in case a close of the wan
                    break;
@@ -48,7 +48,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<PseudoDevice> *pseud
             }
             else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
             {
-                if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW))
+                if (channelAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW))
                 {
                    // Leave the endless loop in case a close of the wan
                    break;
@@ -58,7 +58,7 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<PseudoDevice> *pseud
 
             else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2)
             {
-                if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
+                if (channelAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
                 {
                    // Leave the endless loop in case a close of the wan
                    break;
@@ -124,12 +124,12 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<PseudoDevice> *pseud
     }
 
 
-    if (socketAdmin->GetSocket(logicalChannel) != nullptr)
+    if (channelAdmin->GetChannel(logicalChannel) != nullptr)
     {
         bool unsolicited = true;
         if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
         {
-            if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
+            if (channelAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
             {
                 unsolicited = false;
             }
@@ -137,21 +137,21 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<PseudoDevice> *pseud
 
         if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
         {
-            if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW))
+            if (channelAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW))
             {
                 unsolicited = false;
             }
         }
         if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2)
         {
-            if (socketAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
+            if (channelAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
             {
                 unsolicited = false;
             }
         }
 
         Debug_LOG_DEBUG("ToGuestThread[%1d]: deactivating the socket; unsolicited: %s \n", logicalChannel, (unsolicited ? "true" : "false"));
-        socketAdmin->DeactivateSocket(logicalChannel, unsolicited);
+        channelAdmin->DeactivateChannel(logicalChannel, unsolicited);
     }
 
     Debug_LOG_DEBUG("ToGuestThread[%1d]: completed\n", logicalChannel);
@@ -160,20 +160,20 @@ void ToGuestThread(SocketAdmin *socketAdmin, SharedResource<PseudoDevice> *pseud
 // Possible contexts how to get here:
 // - from guest thread: wants to activate the WAN socket
 // - from the LAN server: wants to activate a newly created client socket
-int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
+int ChannelAdmin::ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevice)
 {
 
     // Check the logical channel is valid
     if (logicalChannel >= UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
-        Debug_LOG_INFO("ActivateSocket: %d\n", -1);
+        Debug_LOG_INFO("ActivateChannel: %d\n", -1);
         return -1;
     }
 
     // Check valid arguments
     if (ioDevice == nullptr)
     {
-        Debug_LOG_ERROR("ActivateSocket: bad input args\n");
+        Debug_LOG_ERROR("ActivateChannel: bad input args\n");
         return -1;
     }
 
@@ -208,17 +208,17 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
         }
         else
         {
-           Debug_LOG_ERROR("ActivateSocket: error creating io devices\n");
+           Debug_LOG_ERROR("ActivateChannel: error creating io devices\n");
         }
     }
     else
     {
-        Debug_LOG_ERROR("ActivateSocket: do not activate - logical channel already exisiting\n");
+        Debug_LOG_ERROR("ActivateChannel: do not activate - logical channel already exisiting\n");
     }
 
     lock.unlock();
 
-    Debug_LOG_DEBUG("ActivateSocket: %d\n", result);
+    Debug_LOG_DEBUG("ActivateChannel: %d\n", result);
 
     if (result  < 0)
     {
@@ -230,7 +230,7 @@ int SocketAdmin::ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice)
 
 // Possible contexts how to get here:
 // - to guest threads (LAN, WAN, control channel): at the end of their life time
-int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
+int ChannelAdmin::DeactivateChannel(unsigned int logicalChannel, bool unsolicited)
 {
     int result = 0;
 
@@ -240,7 +240,7 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
     {
         if (unsolicited == false)
         {
-            OutputDevice *outputDevice = GetSocket(logicalChannel);
+            OutputDevice *outputDevice = GetChannel(logicalChannel);
             outputDevice->Close();
         }
 
@@ -262,20 +262,20 @@ int SocketAdmin::DeactivateSocket(unsigned int logicalChannel, bool unsolicited)
 
     lock.unlock();
 
-    Debug_LOG_DEBUG("DeactivateSocket: %d\n", result);
+    Debug_LOG_DEBUG("DeactivateChannel: %d\n", result);
 
     return result;
 }
 
-OutputDevice *SocketAdmin::GetSocket(unsigned int logicalChannel) const
+OutputDevice *ChannelAdmin::GetChannel(unsigned int logicalChannel) const
 {
     // Use GuestListeners to map logical channel to socket.
     return guestListeners.GetListener(logicalChannel);
 }
 
-void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer)
+void ChannelAdmin::SendDataToChannel(unsigned int logicalChannel, const vector<char> &buffer)
 {
-    OutputDevice *outputDevice = GetSocket(logicalChannel);
+    OutputDevice *outputDevice = GetChannel(logicalChannel);
     if (nullptr == outputDevice)
     {
         Debug_LOG_ERROR("[channel %u] no output device", logicalChannel);
@@ -294,7 +294,7 @@ void SocketAdmin::SendDataToSocket(unsigned int logicalChannel, const vector<cha
     }
 }
 
-bool SocketAdmin::CloseWasRequested(unsigned int logicalChannel)
+bool ChannelAdmin::CloseWasRequested(unsigned int logicalChannel)
 {
     if ((logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN) || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW) \
        || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
@@ -309,7 +309,7 @@ bool SocketAdmin::CloseWasRequested(unsigned int logicalChannel)
     return result;
 }
 
-void SocketAdmin::RequestClose(unsigned int logicalChannel)
+void ChannelAdmin::RequestClose(unsigned int logicalChannel)
 {
     if ((logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN) || (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW) \
        || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))

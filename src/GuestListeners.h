@@ -11,7 +11,7 @@ using namespace std;
 class GuestListeners
 {
     public:
-    GuestListeners(unsigned int numListeners) : 
+    GuestListeners(unsigned int numListeners) :
         numListeners(numListeners),
         listeners(numListeners, nullptr)
     {
@@ -34,7 +34,7 @@ class GuestListeners
         OutputDevice *result = nullptr;
 
         lock.lock();
-        
+
         if (listenerIndex < numListeners)
         {
             result = listeners[listenerIndex];

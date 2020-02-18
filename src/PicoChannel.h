@@ -9,24 +9,34 @@
 #include <string.h>
 
 #include <sys/types.h>
-#include <sys/socket.h>
+
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
 
 #include <vector>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include "pico_bsd_sockets.h"
+#ifdef __cplusplus
+}
+#endif
+
+
 using namespace std;
 
-class Socket : public InputDevice, public OutputDevice
+class PicoChannel : public InputDevice, public OutputDevice
 {
     public:
-    Socket(int port, string hostName)
+	PicoChannel(int port, string hostName)
     {
         struct sockaddr_in serv_addr;
         struct hostent *server;
 
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
         if (sockfd < 0)
         {
             error("ERROR opening socket");
@@ -36,7 +46,7 @@ class Socket : public InputDevice, public OutputDevice
         else
         {
             server = gethostbyname(hostName.c_str());
-            if (server == NULL) 
+            if (server == NULL)
             {
                 error("ERROR, no such host");
                 close(sockfd);
@@ -46,23 +56,23 @@ class Socket : public InputDevice, public OutputDevice
             {
                 bzero((char *) &serv_addr, sizeof(serv_addr));
                 serv_addr.sin_family = AF_INET;
-                bcopy((char *)server->h_addr, 
+                bcopy((char *)server->h_addr,
                     (char *)&serv_addr.sin_addr.s_addr,
                     server->h_length);
 
                 serv_addr.sin_port = htons(port);
-                
+
                 if (connect(sockfd,(struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
                 {
                     error("ERROR connecting");
                     close(sockfd);
                     sockfd = -1;
-                } 
+                }
             }
         }
     }
 
-    ~Socket()
+    ~PicoChannel()
     {
         close(sockfd);
     }
@@ -101,5 +111,4 @@ class Socket : public InputDevice, public OutputDevice
     {
         fprintf(stderr, "%s\n", msg);
     }
-
 };

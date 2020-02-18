@@ -2,7 +2,7 @@
 #pragma once
 
 #include "IoDevices.h"
-#include "CloudSocket.h"
+#include "CloudChannel.h"
 
 #include "LibDebug/Debug.h"
 
@@ -41,6 +41,6 @@ class CloudSocketCreator : public IoDeviceCreator
 
     IoDevice *Create()
     {
-        return new CloudSocket(port, hostName);
+        return new CloudChannel(port, hostName);
     }
 };

@@ -14,10 +14,10 @@
 
 using namespace std;
 
-class SocketAdmin
+class ChannelAdmin
 {
     public:
-    SocketAdmin(SharedResource<PseudoDevice> *pseudoDevice) :
+    ChannelAdmin(SharedResource<PseudoDevice> *pseudoDevice) :
         pseudoDevice{pseudoDevice},
         guestListeners{UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX},
         closeWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX),
@@ -26,10 +26,10 @@ class SocketAdmin
     {
     }
 
-    int ActivateSocket(unsigned int logicalChannel, IoDevice *ioDevice);
-    int DeactivateSocket(unsigned int logicalChannel, bool unsolicited);
-    OutputDevice *GetSocket(unsigned int logicalChannel) const;
-    void SendDataToSocket(unsigned int logicalChannel, const vector<char> &buffer);
+    int ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevice);
+    int DeactivateChannel(unsigned int logicalChannel, bool unsolicited);
+    OutputDevice *GetChannel(unsigned int logicalChannel) const;
+    void SendDataToChannel(unsigned int logicalChannel, const vector<char> &buffer);
     SharedResource<PseudoDevice> *GetPseudoDevice() const { return pseudoDevice; }
 
     /* These two members are the result of integration experience: use case: connection closed by cloud server. */

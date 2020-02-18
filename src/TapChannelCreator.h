@@ -2,20 +2,20 @@
 #pragma once
 
 #include "IoDevices.h"
-#include "TapSocket.h"
+#include "TapChannel.h"
 
 #include "LibDebug/Debug.h"
 
 
 using namespace std;
 
-class TapSocketCreator : public IoDeviceCreator
+class TapChannelCreator : public IoDeviceCreator
 {
     private:
     int tapfd;
 
     public:
-    TapSocketCreator(const char *name)
+    TapChannelCreator(const char *name)
     {
 	    struct ifreq ifr;
 
@@ -38,14 +38,14 @@ class TapSocketCreator : public IoDeviceCreator
 
     }
 
-    ~TapSocketCreator()
+    ~TapChannelCreator()
     {
     }
 
     IoDevice *Create()
     {
         printf("Create Tap socket...%s\n",__FUNCTION__);
-    	return new TapSocket(tapfd);
+    	return new TapChannel(tapfd);
     }
 
 };

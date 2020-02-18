@@ -1,5 +1,5 @@
 
-#include "Socket.h"
+#include "Channel.h"
 #include "MqttCloud.h"
 
 #include <chrono>
@@ -47,7 +47,7 @@ int main(int argc, const char *argv[])
 
     while (true)
     {
-        Socket socket {port, hostName};
+        Channel socket {port, hostName};
 
         //printf("SendMqttPublish: created socket - make a pause before writing...\n");
         //std::this_thread::sleep_for(std::chrono::milliseconds(1000 * 15));

@@ -9,34 +9,24 @@
 #include <string.h>
 
 #include <sys/types.h>
-
+#include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <errno.h>
 
 #include <vector>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include "pico_bsd_sockets.h"
-#ifdef __cplusplus
-}
-#endif
-
-
 using namespace std;
 
-class PicoSocket : public InputDevice, public OutputDevice
+class Channel : public InputDevice, public OutputDevice
 {
     public:
-	PicoSocket(int port, string hostName)
+    Channel(int port, string hostName)
     {
         struct sockaddr_in serv_addr;
         struct hostent *server;
 
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
         if (sockfd < 0)
         {
             error("ERROR opening socket");
@@ -72,7 +62,7 @@ class PicoSocket : public InputDevice, public OutputDevice
         }
     }
 
-    ~PicoSocket()
+    ~Channel()
     {
         close(sockfd);
     }
@@ -111,4 +101,5 @@ class PicoSocket : public InputDevice, public OutputDevice
     {
         fprintf(stderr, "%s\n", msg);
     }
+
 };

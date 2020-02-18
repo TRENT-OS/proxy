@@ -3,8 +3,8 @@
 #include "LibDebug/Debug.h"
 #include "CloudSocketCreator.h"
 #include "PicoCloudSocketCreator.h"
-#include "TapSocketCreator.h"
-#include "NvmSocketCreator.h"
+#include "TapChannelCreator.h"
+#include "NvmChannelCreator.h"
 #include "ChanMuxTestChannelCreator.h"
 
 #include <map>
@@ -13,13 +13,13 @@ using namespace std;
 
 // Class that maps socket creators to their own channels. This is a kind
 // of meta-creator. A creator of creators.
-class SocketCreators
+class ChannelCreators
 {
 private:
     map<int, IoDeviceCreator*>  creators;
 
 public:
-    SocketCreators(string hostName, int port, bool use_pico, bool use_tap)
+    ChannelCreators(string hostName, int port, bool use_pico, bool use_tap)
     {
         // UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN has a separate handling
         if (use_pico)
@@ -35,17 +35,12 @@ public:
         else
         {
             creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW] =
-                    new TapSocketCreator("tap0");
+                    new TapChannelCreator("tap0");
 
             creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2] =
-                    new TapSocketCreator("tap1");
+                    new TapChannelCreator("tap1");
 
         }
-        creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM] =
-                new NvmSocketCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM);
-
-        creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM2] =
-                new NvmSocketCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM2);
         creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CM_TEST_1] =
                 new ChanMuxTestChannelCreator();
 
@@ -53,7 +48,7 @@ public:
                 new ChanMuxTestChannelCreator();
     }
 
-    ~SocketCreators()
+    ~ChannelCreators()
     {
         for (auto& kv : creators)
         {

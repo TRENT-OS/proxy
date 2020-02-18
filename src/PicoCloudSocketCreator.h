@@ -2,7 +2,7 @@
 #pragma once
 
 #include "IoDevices.h"
-#include "PicoCloudSocket.h"
+#include "PicoCloudChannel.h"
 
 #include "LibDebug/Debug.h"
 
@@ -27,6 +27,6 @@ class PicoCloudSocketCreator : public IoDeviceCreator
 
     IoDevice *Create()
     {
-        return new PicoCloudSocket(port, hostName);
+        return new PicoCloudChannel(port, hostName);
     }
 };

@@ -3,10 +3,10 @@
 #include "GuestConnector.h"
 #include "ServerSocket.h"
 #include "SharedResource.h"
-#include "Socket.h"
+#include "Channel.h"
 #include "MqttCloud.h"
-#include "SocketAdmin.h"
-#include "LanServerSocket.h"
+#include "ChannelAdmin.h"
+#include "LanServerChannel.h"
 #include "LibDebug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
@@ -14,9 +14,7 @@
 #include <thread>
 #include <unistd.h>
 
-
-
-#include "SocketCreators.h"
+#include "ChannelCreators.h"
 
 #define LAN_PORT 7999
 
@@ -81,7 +79,7 @@ void WriteToGuest(SharedResource<PseudoDevice> *pseudoDevice, unsigned int logic
     }
 }
 
-void SendResponse(unsigned int logicalChannel, SocketAdmin *socketAdmin, UartSocketGuestSocketCommand command, vector<char> result)
+void SendResponse(unsigned int logicalChannel, ChannelAdmin *channelAdmin, UartSocketGuestSocketCommand command, vector<char> result)
 {
     vector<char> response(2,0);
 
@@ -109,7 +107,7 @@ void SendResponse(unsigned int logicalChannel, SocketAdmin *socketAdmin, UartSoc
         response[1]);
 
     WriteToGuest(
-        socketAdmin->GetPseudoDevice(),
+        channelAdmin->GetPseudoDevice(),
         logicalChannel,
         response);
 }
@@ -131,9 +129,9 @@ static int IsDataChannel(unsigned int channelId)
 }
 
 void HandleSocketCommand(unsigned int logicalChannel,
-                         SocketAdmin *socketAdmin,
+                         ChannelAdmin *channelAdmin,
                          vector<char> &buffer,
-                         SocketCreators* socketCreators)
+                         ChannelCreators* channelCreators)
 {
     if (IsControlChannel(logicalChannel))
     {
@@ -168,57 +166,57 @@ void HandleSocketCommand(unsigned int logicalChannel,
             if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
             {
                 Debug_LOG_INFO("entry Activate Socket\n");
-                result[0] = socketAdmin->ActivateSocket(commandLogicalChannel,
-                                                        socketCreators->getCreator(commandLogicalChannel)->Create());
+                result[0] = channelAdmin->ActivateChannel(commandLogicalChannel,
+                                                        channelCreators->getCreator(commandLogicalChannel)->Create());
                 result[0] = result[0] < 0 ? 1 : 0;
                 Debug_LOG_INFO("exit Activate Socket\n");
             }
             else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE)
             {
-                socketAdmin->RequestClose(commandLogicalChannel);
+                channelAdmin->RequestClose(commandLogicalChannel);
                 result[0] = 0;
             }
             else
             {
                 /* handle payload as command */
-                OutputDevice *socket = socketAdmin->GetSocket(commandLogicalChannel);
-                if (socket)
+                OutputDevice *channel = channelAdmin->GetChannel(commandLogicalChannel);
+                if (channel)
                 {
-                    result = socket->HandlePayload(buffer);
+                    result = channel->HandlePayload(buffer);
                 }
             }
         }
-        // Debug_LOG_INFO("Handle socket command: result:%d\n", result);
+        // Debug_LOG_INFO("Handle channel command: result:%d\n", result);
 
-        //SendResponse(socketAdmin, command, PARAM(result, result < 0 ? 1 : 0));
-        SendResponse(logicalChannel, socketAdmin, command, result);
+        //SendResponse(channelAdmin, command, PARAM(result, result < 0 ? 1 : 0));
+        SendResponse(logicalChannel, channelAdmin, command, result);
     }
     else if (IsDataChannel(logicalChannel))
     {
-        socketAdmin->SendDataToSocket(logicalChannel, buffer);
+        channelAdmin->SendDataToChannel(logicalChannel, buffer);
     }
     else
     {   // Command Channel
-        OutputDevice *socket = socketAdmin->GetSocket(logicalChannel);
-        if (!socket)
-        {   // if socket was not created than let's do it by activating it
-            if (!socketAdmin->ActivateSocket(logicalChannel,
-                                             socketCreators->getCreator(logicalChannel)->Create()))
+        OutputDevice *channel = channelAdmin->GetChannel(logicalChannel);
+        if (!channel)
+        {   // if channel was not created than let's do it by activating it
+            if (!channelAdmin->ActivateChannel(logicalChannel,
+                                               channelCreators->getCreator(logicalChannel)->Create()))
             {
-                socket = socketAdmin->GetSocket(logicalChannel);
-                Debug_ASSERT(socket != NULL);
+                channel = channelAdmin->GetChannel(logicalChannel);
+                Debug_ASSERT(channel != NULL);
             }
         }
-        WriteToGuest(socketAdmin->GetPseudoDevice(),
+        WriteToGuest(channelAdmin->GetPseudoDevice(),
                      logicalChannel,
-                     socket->HandlePayload(buffer));
+                     channel->HandlePayload(buffer));
     }
 }
 
 static bool KeepFromGuestThreadAlive = true;
 
-// "RX" only = it receives all data from the guest (=seL4) and a) puts it into the appropriate socket or b) executes the received control command
-void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, SocketCreators* socketCreators)
+// "RX" only = it receives all data from the guest (=seL4) and a) puts it into the appropriate channel or b) executes the received control command
+void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin, ChannelCreators* channelCreators)
 {
     size_t bufSize = 4096;
     vector<char> buffer(bufSize);
@@ -247,9 +245,9 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, S
                 buffer.resize(readBytes);
                 // Handle the commands arriving on the control channel
                 HandleSocketCommand(logicalChannel,
-                                    socketAdmin,
+                                    channelAdmin,
                                     buffer,
-                                    socketCreators);
+                                    channelCreators);
             }
             else
             {
@@ -264,7 +262,7 @@ void FromGuestThread(GuestConnector *guestConnector, SocketAdmin *socketAdmin, S
     }
 }
 
-void LanServer(SocketAdmin *socketAdmin, unsigned int lanPort)
+void LanServer(ChannelAdmin *channelAdmin, unsigned int lanPort)
 {
     ServerSocket serverSocket(lanPort);
     socklen_t clientLength;
@@ -287,10 +285,10 @@ void LanServer(SocketAdmin *socketAdmin, unsigned int lanPort)
             clientLength = sizeof(clientAddress);
             int newsockfd = serverSocket.Accept((struct sockaddr *) &clientAddress, &clientLength);
 
-            if (socketAdmin->GetSocket(logicalChannel) == nullptr)
+            if (channelAdmin->GetChannel(logicalChannel) == nullptr)
             {
                 Debug_LOG_INFO("LanServer: start server thread: in port %d, in address %x (file descriptor: %x)\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr, newsockfd);
-                socketAdmin->ActivateSocket(logicalChannel, new LanServerSocket{newsockfd});
+                channelAdmin->ActivateChannel(logicalChannel, new LanServerChannel{newsockfd});
             }
             else
             {
@@ -416,22 +414,22 @@ int main(int argc, char *argv[])
     }
 
 
-   SocketAdmin socketAdmin{&pseudoDevice};
+   ChannelAdmin channelAdmin{&pseudoDevice};
 
    // The "GUEST thread" is:
-   // a) receiving all hdlc frames and distributing them to the sockets
-   // b) handling the socket admin commands from the guest
+   // a) receiving all hdlc frames and distributing them to the channels
+   // b) handling the channel admin commands from the guest
 
-   SocketCreators socketCreators(hostName, port, use_pico, use_tap);
+   ChannelCreators channelCreators(hostName, port, use_pico, use_tap);
 
    thread fromGuestThread{
        FromGuestThread,
        &guestConnector,
-       &socketAdmin,
-       &socketCreators};
+       &channelAdmin,
+       &channelCreators};
 
     // Handle the LAN socket
-    LanServer(&socketAdmin, lanPort);
+    LanServer(&channelAdmin, lanPort);
 
     // We only get here if something in the LanServer went wrong.
     KeepFromGuestThreadAlive = false;

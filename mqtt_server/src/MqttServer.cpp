@@ -1,5 +1,5 @@
 
-#include "Socket.h"
+#include "Channel.h"
 #include "ServerSocket.h"
 #include "IoDevices.h"
 #include "MqttCloud.h"
@@ -87,6 +87,6 @@ int main(int argc, const char *argv[])
     MqttServer(port);
 
     // We never get here -> no cleanup
-    
+
     return 0;
 }

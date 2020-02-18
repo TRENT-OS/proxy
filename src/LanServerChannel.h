@@ -2,13 +2,13 @@
 #pragma once
 
 #include "IoDevices.h"
-#include "Socket.h"
+#include "Channel.h"
 
 #include "LibDebug/Debug.h"
 
 using namespace std;
 
-class LanServerSocket : public IoDevice
+class LanServerChannel : public IoDevice
 {
     private:
     int fd;
@@ -16,13 +16,13 @@ class LanServerSocket : public IoDevice
     InputDevice *inputDevice;
 
     public:
-    LanServerSocket(int fd) :
+    LanServerChannel(int fd) :
         fd(fd),
         outputDevice(nullptr),
         inputDevice(nullptr)
     {}
 
-    ~LanServerSocket()
+    ~LanServerChannel()
     {
         if (outputDevice != nullptr)
         {

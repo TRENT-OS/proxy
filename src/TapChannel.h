@@ -17,43 +17,43 @@
 
 using namespace std;
 
-class TapSocket : public IoDevice
+class TapChannel : public IoDevice
 {
     private:
     int tapfd;
-    Tap *socket;
+    Tap *channel;
 
     public:
-    TapSocket(int fd) :
-        socket(nullptr)
+    TapChannel(int fd) :
+        channel(nullptr)
     {
     	tapfd = fd;
     }
 
-    ~TapSocket()
+    ~TapChannel()
     {
-        if (socket != nullptr)
+        if (channel != nullptr)
         {
-            delete socket;
+            delete channel;
         }
     }
 
     int Create()
     {
     	Debug_LOG_INFO("TapSocket: create TAP Dev socket start: %s:%d\n",__FUNCTION__,tapfd);
-        socket = new Tap(tapfd);
-        Debug_LOG_INFO("TapSocket: create TAP Dev socket end: %s:%p\n",__FUNCTION__,socket);
+        channel = new Tap(tapfd);
+        Debug_LOG_INFO("TapSocket: create TAP Dev socket end: %s:%p\n",__FUNCTION__,channel);
 
         return 0;
     }
 
     OutputDevice *GetOutputDevice()
     {
-        return socket;
+        return channel;
     }
 
     InputDevice *GetInputDevice()
     {
-        return socket;
+        return channel;
     }
 };

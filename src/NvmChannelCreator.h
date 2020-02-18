@@ -1,28 +1,28 @@
 #pragma once
 
 #include "IoDevices.h"
-#include "NvmSocket.h"
+#include "NvmChannel.h"
 
 #include "LibDebug/Debug.h"
 
 
 using namespace std;
 
-class NvmSocketCreator : public IoDeviceCreator
+class NvmChannelCreator : public IoDeviceCreator
 {
     private:
         unsigned m_chanNum;
     public:
-    NvmSocketCreator(unsigned chanNum) : m_chanNum(chanNum)
+    NvmChannelCreator(unsigned chanNum) : m_chanNum(chanNum)
     {
     }
 
-    ~NvmSocketCreator()
+    ~NvmChannelCreator()
     {
     }
 
     IoDevice *Create()
     {
-        return new NvmSocket(m_chanNum);
+        return new NvmChannel(m_chanNum);
     }
 };
