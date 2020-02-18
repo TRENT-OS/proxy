@@ -5,6 +5,7 @@
 #include "PicoCloudSocketCreator.h"
 #include "TapSocketCreator.h"
 #include "NvmSocketCreator.h"
+#include "ChanMuxTestSocketCreator.h"
 
 #include <map>
 
@@ -42,9 +43,14 @@ public:
         }
         creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM] =
                 new NvmSocketCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM);
-        
+
         creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM2] =
                 new NvmSocketCreator(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NVM2);
+        creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CM_TEST_1] =
+                new ChanMuxTestSocketCreator();
+
+        creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_CM_TEST_2] =
+                new ChanMuxTestSocketCreator();
     }
 
     ~SocketCreators()
