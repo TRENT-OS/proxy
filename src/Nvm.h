@@ -21,7 +21,7 @@
 #define CMD_READ                2
 
 #define DEFAULT_MEM_SIZE        (1024*1024) //1 MB of memory
-#define CHANNEL_NVM_1_MEM_SIZE  (128*1024)  //128 kB of memory
+#define CHANNEL_NVM_1_MEM_SIZE  (36*1024*1024)  //36 MiB of memory
 #define CHANNEL_NVM_2_MEM_SIZE  (128*1024)  //128 kB of memory
 
 #define MAX_MSG_LEN             4096
