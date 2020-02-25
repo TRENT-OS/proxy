@@ -1,4 +1,6 @@
-
+/**
+ * Copyright (C) 2019, Hensoldt Cyber GmbH
+ */
 
 #include "GuestConnector.h"
 #include "ServerSocket.h"
@@ -43,6 +45,24 @@ string UartSocketCommand(UartSocketGuestSocketCommand command)
     case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE_CNF:
         return ("CloseCnf");
 
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC:
+        return ("Get MAC");
+
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC_CNF:
+        return ("Get MAC Cnf");
+
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_START_READ:
+        return ("StartData");
+
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_START_READ_CNF:
+        return ("StartDataCnf");
+
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_STOP_READ:
+        return ("StopData");
+
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_STOP_READ_CNF:
+        return ("StopDataCnf");
+
     default:
         return ("Unknown");
     }
@@ -83,21 +103,35 @@ void SendResponse(unsigned int logicalChannel, ChannelAdmin *channelAdmin, UartS
 {
     vector<char> response(2, 0);
 
-    if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
-
+    switch (command)
     {
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN:
         response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN_CNF);
-        printf(" Tx Send response =%d\n", response[0]);
-    }
-    else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC)
-    {
+        break;
+
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE:
+        response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE_CNF);
+        break;
+
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC:
         response.resize(8);
         response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC_CNF);
         memcpy(&response[2], &result[1], 6);
-    }
-    else
-    {
+        break;
+
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_START_READ:
+        response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_START_READ_CNF);
+        break;
+
+    case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_STOP_READ:
+        response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_STOP_READ_CNF);
+        break;
+
+    default:
+        // ToDo: keep legacy behavior and send CLOSE_CNF on invalid commands
         response[0] = static_cast<char>(UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE_CNF);
+        Debug_LOG_ERROR("Unknown command: %d", command);
+        break;
     }
 
     response[1] = result[0];

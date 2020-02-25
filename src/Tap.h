@@ -1,7 +1,5 @@
-/*
- * Tap.h
- *
- *  Created on: Mar 25, 2019
+/**
+ * Copyright (C) 2019, Hensoldt Cyber GmbH
  */
 
 #pragma once
@@ -34,7 +32,7 @@
 
 using namespace std;
 
-#define ENABLE_TAP_FILTER 1 /* Enable or disable the filter */
+#define ENABLE_TAP_FILTER 0 /* Enable or disable the filter */
 
 #define FRAME_LENGTH_IN_BYTES 2 /* First 2 bytes contain frame length*/
 
@@ -116,7 +114,6 @@ public:
     int Read(vector<char> &buf)
     {
         int ret;
-
         struct pollfd pfd = {.fd = tapfd, .events = POLLIN};
         ret = poll(&pfd, 1, 0);
         if (ret < 0)
@@ -146,6 +143,19 @@ public:
         {
             Debug_LOG_ERROR("[%s] read() failed, error %d", devname, ret);
             return -1;
+        }
+
+        // We read from the TAP device even when not forwarding to QEMU, 
+        // to prevent stale data in the FIFO. If we haven't reveiced a START yet
+        // we ignore the packet we read into the buffer and return -1.
+        if (!read_start)
+        {
+            if (!printed_to_log)
+            {
+                Debug_LOG_INFO("Not reading from TAP device %s until START is received\n", devname);
+                printed_to_log = true;
+            }
+            return -1; // Dont read anything until read_start is true
         }
 
         size_t frame_len = ret;
@@ -220,7 +230,6 @@ public:
         {
             return -1;
         }
-
         // we have an ARP IPv4 packet, check that target IP address matches
         static_assert(sizeof(arp->target_ip) == sizeof(TAP1_IP_ADDR));
         int is_ip_ok = (0 == memcmp(&(arp->target_ip), TAP1_IP_ADDR, sizeof(TAP1_IP_ADDR)));
@@ -475,17 +484,15 @@ public:
     std::vector<char> HandlePayload(vector<char> buffer)
     {
         UartSocketGuestSocketCommand command = static_cast<UartSocketGuestSocketCommand>(buffer[0]);
-
+        vector<char> result(7, 0);
+        unsigned int channel = buffer[1];
         switch (command)
         {
         //-----------------------------------------------------------
         case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC:
         {
-            unsigned int channel = buffer[1];
             Debug_LOG_DEBUG("command GET_MAC for channel %d", channel);
-            vector<char> result(7, 0);
             vector<uint8_t> mac(6, 0);
-
             switch (channel)
             {
             //-----------------------------------------------------------
@@ -511,12 +518,26 @@ public:
         }
 
         //-----------------------------------------------------------
+        case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_START_READ:
+            Debug_LOG_DEBUG("command START_READ for channel %d\n", channel);
+            read_start = true;
+            result[0] = 0;
+            return result;
+
+        //-----------------------------------------------------------
+        case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_STOP_READ:
+            Debug_LOG_DEBUG("command STOP_READ for channel %d\n", channel);
+            read_start = false;
+            printed_to_log = false;
+            result[0] = 0;
+            return result;
+
+        //-----------------------------------------------------------
         default:
             break;
         } // end switch(command)
 
         Debug_LOG_ERROR("unknown command 0x%02x", command);
-        vector<char> result(1, 0);
         result[0] = -1;
         return result;
     }
@@ -530,6 +551,8 @@ private:
     int tapfd;
     uint8_t mac_tap[6]; /* Save tap mac addr and name for later use for filtering data */
     char devname[10] = {0};
+    bool read_start = false;
+    bool printed_to_log = false;
 
     void error(const char *msg) const
     {
