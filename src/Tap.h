@@ -4,7 +4,6 @@
  *  Created on: Mar 25, 2019
  */
 
-
 #pragma once
 
 #include "IoDevices.h"
@@ -35,9 +34,9 @@
 
 using namespace std;
 
-#define  ENABLE_TAP_FILTER 1  /* Enable or disable the filter */
+#define ENABLE_TAP_FILTER 1 /* Enable or disable the filter */
 
-#define  FRAME_LENGTH_IN_BYTES         2 /* First 2 bytes contain frame length*/
+#define FRAME_LENGTH_IN_BYTES 2 /* First 2 bytes contain frame length*/
 
 /*
 Two problems seen when tap allows all the traffic to flow are
@@ -62,35 +61,38 @@ typedef uint8_t eth_mac_addr_t[6];
 typedef uint8_t ipv4_addr_t[4];
 
 // Ethernet header
-typedef struct {
-    eth_mac_addr_t  dest_addr;   // Destination hardware address
-    eth_mac_addr_t  src_addr;    // Source hardware address
-    uint16_t        frame_type;  // Ethernet frame type */
+typedef struct
+{
+    eth_mac_addr_t dest_addr; // Destination hardware address
+    eth_mac_addr_t src_addr;  // Source hardware address
+    uint16_t frame_type;      // Ethernet frame type */
 } __attribute__((packed)) ethernet_header_t;
 
 #define ETHERNET_FRAME_TYPE_ARP 0x0806
 
 // Ethernet ARP packet from RFC 826
-typedef struct {
-    uint16_t        hw_type;          // 1 for Ethernet
-    uint16_t        protocol_type;    // 0x8000 for IPv4
-    uint8_t         hw_addr_len;      // 6 for Ethernet MACs
-    uint8_t         prot_addr_len;    // 4 for IPv4 IP addresses
-    uint16_t        operation;        // 1=request, 2=reply
-    eth_mac_addr_t  sender_mac;
-    ipv4_addr_t     sender_ip;
-    eth_mac_addr_t  target_mac;
-    ipv4_addr_t     target_ip;
+typedef struct
+{
+    uint16_t hw_type;       // 1 for Ethernet
+    uint16_t protocol_type; // 0x8000 for IPv4
+    uint8_t hw_addr_len;    // 6 for Ethernet MACs
+    uint8_t prot_addr_len;  // 4 for IPv4 IP addresses
+    uint16_t operation;     // 1=request, 2=reply
+    eth_mac_addr_t sender_mac;
+    ipv4_addr_t sender_ip;
+    eth_mac_addr_t target_mac;
+    ipv4_addr_t target_ip;
 } __attribute__((packed)) arp_ethernet_ipv4_t;
 
-#define ARP_HW_TYPE_ETHERNET    1
-#define ARP_PROTOCOL_TYPE_IPv4  0x8000
-#define ARP_ETH_HW_ADDR_LEN     6
-#define ARP_PROT_IPv4_ADDR_LEN  4
+#define ARP_HW_TYPE_ETHERNET 1
+#define ARP_PROTOCOL_TYPE_IPv4 0x8000
+#define ARP_ETH_HW_ADDR_LEN 6
+#define ARP_PROT_IPv4_ADDR_LEN 4
 
-typedef struct {
-    ethernet_header_t       eth_header;
-    arp_ethernet_ipv4_t     arp_ipv4;
+typedef struct
+{
+    ethernet_header_t eth_header;
+    arp_ethernet_ipv4_t arp_ipv4;
 } packet_ethernet_arp_ipv4_t;
 
 // this IP address is assigned by a SEOS system to a network interface. We use
@@ -99,11 +101,9 @@ typedef struct {
 // the SEOS system should be able to enable this filter on demand with a
 // command, so we don't have anything to hard-coded here at all. The Proxy
 // should be agnostic of how a SEOS system uses the network interface.
-const ipv4_addr_t TAP1_IP_ADDR = {192,168,82,92};
+const ipv4_addr_t TAP1_IP_ADDR = {192, 168, 82, 92};
 
 #endif
-
-
 
 class Tap : public InputDevice, public OutputDevice
 {
@@ -113,12 +113,11 @@ public:
         tapfd = fd;
     }
 
-
     int Read(vector<char> &buf)
     {
         int ret;
 
-        struct pollfd pfd = { .fd = tapfd, .events = POLLIN };
+        struct pollfd pfd = {.fd = tapfd, .events = POLLIN};
         ret = poll(&pfd, 1, 0);
         if (ret < 0)
         {
@@ -143,7 +142,7 @@ public:
         ret = read(tapfd, &buf[FRAME_LENGTH_IN_BYTES], buf.size());
         // we consider 0 as an error, since poll() above must have returned
         // with a non-zero value if we arrive here. So there must be data.
-        if(ret <= 0)
+        if (ret <= 0)
         {
             Debug_LOG_ERROR("[%s] read() failed, error %d", devname, ret);
             return -1;
@@ -158,13 +157,13 @@ public:
 
 #if (ENABLE_TAP_FILTER == 1)
 
-        ethernet_header_t* eth = (ethernet_header_t*)&buf[FRAME_LENGTH_IN_BYTES];
+        ethernet_header_t *eth = (ethernet_header_t *)&buf[FRAME_LENGTH_IN_BYTES];
         if (frame_len < sizeof(*eth))
         {
-           return -1;
+            return -1;
         }
 
-        static_assert( sizeof(mac_tap) == sizeof(eth->dest_addr) );
+        static_assert(sizeof(mac_tap) == sizeof(eth->dest_addr));
         int is_mac_ok = (0 == memcmp(eth->dest_addr, &mac_tap[0], sizeof(mac_tap)));
 
         // all packets can pass where the destination MAC matches
@@ -175,13 +174,13 @@ public:
 
         // If we are here, the destination MAC did not match. Drop packet if we
         // are not tap1
-        int is_tap0 = (0 == strcmp(devname,"tap0"));
-        int is_tap1 = (0 == strcmp(devname,"tap1"));
-        if ( !is_tap1)
+        int is_tap0 = (0 == strcmp(devname, "tap0"));
+        int is_tap1 = (0 == strcmp(devname, "tap1"));
+        if (!is_tap1)
         {
-            if(devname[0] != '\0')
+            if (devname[0] != '\0')
             {
-                assert( is_tap0 ); // fail safe, we must be tap0
+                assert(is_tap0); // fail safe, we must be tap0
                 return -1;
             }
         }
@@ -198,7 +197,7 @@ public:
         }
 
         // assume we have an Ethernet ARP IPv4 packet.
-        packet_ethernet_arp_ipv4_t* packet_ethernet_arp_ipv4 = (packet_ethernet_arp_ipv4_t*)&buf[FRAME_LENGTH_IN_BYTES];
+        packet_ethernet_arp_ipv4_t *packet_ethernet_arp_ipv4 = (packet_ethernet_arp_ipv4_t *)&buf[FRAME_LENGTH_IN_BYTES];
 
         // check size. Note ARP packets can be less than the minimum size of an
         // Ethernet frame, thus there is additional padding after the ARP data.
@@ -209,25 +208,22 @@ public:
         // ignore this.
         if (frame_len < sizeof(*packet_ethernet_arp_ipv4))
         {
-           return -1;
+            return -1;
         }
 
         // size is ok, check if payload is a valid ARP IPv4 packet. Note that
         // network byte order is big endian, so we need ntohs() for all
         // integers
         arp_ethernet_ipv4_t *arp = &(packet_ethernet_arp_ipv4->arp_ipv4);
-        if ( (ntohs(ARP_HW_TYPE_ETHERNET) != arp->hw_type)
-             && (ntohs(ARP_PROTOCOL_TYPE_IPv4) != arp->protocol_type)
-             && (ntohs(ARP_ETH_HW_ADDR_LEN) != arp->hw_addr_len)
-             && (ntohs(ARP_PROT_IPv4_ADDR_LEN) != arp->prot_addr_len))
+        if ((ntohs(ARP_HW_TYPE_ETHERNET) != arp->hw_type) && (ntohs(ARP_PROTOCOL_TYPE_IPv4) != arp->protocol_type) && (ntohs(ARP_ETH_HW_ADDR_LEN) != arp->hw_addr_len) && (ntohs(ARP_PROT_IPv4_ADDR_LEN) != arp->prot_addr_len))
 
         {
             return -1;
         }
 
         // we have an ARP IPv4 packet, check that target IP address matches
-        static_assert( sizeof(arp->target_ip) == sizeof(TAP1_IP_ADDR) );
-        int is_ip_ok = (0 == memcmp( &(arp->target_ip), TAP1_IP_ADDR, sizeof(TAP1_IP_ADDR)));
+        static_assert(sizeof(arp->target_ip) == sizeof(TAP1_IP_ADDR));
+        int is_ip_ok = (0 == memcmp(&(arp->target_ip), TAP1_IP_ADDR, sizeof(TAP1_IP_ADDR)));
         if (!is_ip_ok)
         {
             return -1;
@@ -237,7 +233,6 @@ public:
 
         return FRAME_LENGTH_IN_BYTES + frame_len;
     }
-
 
     int Write(vector<char> buf)
     {
@@ -250,8 +245,7 @@ public:
         // the frame prtocoll is: 2 byte frame length | frame data | .....
 
         // state machine
-        static enum
-        {
+        static enum {
             RECEIVE_ERROR = 0,
             RECEIVE_FRAME_START,
             RECEIVE_FRAME_LEN,
@@ -266,10 +260,10 @@ public:
         int partialFrame = (frame_offset > 0);
         if (partialFrame)
         {
-            Debug_ASSERT( RECEIVE_FRAME_DATA == state );
+            Debug_ASSERT(RECEIVE_FRAME_DATA == state);
         }
 
-        for(;;)
+        for (;;)
         {
             switch (state)
             {
@@ -289,7 +283,7 @@ public:
 
             //----------------------------------------------------------------------
             case RECEIVE_FRAME_LEN:
-                Debug_ASSERT( 0 != size_len );
+                Debug_ASSERT(0 != size_len);
 
                 do
                 {
@@ -308,7 +302,7 @@ public:
                     frame_len <<= 8;
                     frame_len |= len_byte;
 
-                } while ( 0 != --size_len );
+                } while (0 != --size_len);
 
                 // we have read the length, make some sanity check and then
                 // change state to read the frame data
@@ -331,16 +325,16 @@ public:
                     break;
                 }
 
-                Debug_ASSERT( 0 == frame_offset );
+                Debug_ASSERT(0 == frame_offset);
                 state = RECEIVE_FRAME_DATA;
                 break; // could also fall through
 
             //----------------------------------------------------------------------
             case RECEIVE_FRAME_DATA:
             {
-                Debug_ASSERT( buffer_offset + buffer_len <= buf.size() );
-                Debug_ASSERT( 0 == size_len );
-                Debug_ASSERT( 0 != frame_len );
+                Debug_ASSERT(buffer_offset + buffer_len <= buf.size());
+                Debug_ASSERT(0 == size_len);
+                Debug_ASSERT(0 != frame_len);
 
                 if (0 == buffer_len)
                 {
@@ -354,7 +348,7 @@ public:
                     partialFrame = true;
                 }
 
-                Debug_ASSERT( 0 != chunk_len );
+                Debug_ASSERT(0 != chunk_len);
 
                 if ((!doDropFrame) && partialFrame)
                 {
@@ -363,7 +357,7 @@ public:
                            chunk_len);
                 }
 
-                Debug_ASSERT( buffer_len >= chunk_len );
+                Debug_ASSERT(buffer_len >= chunk_len);
                 buffer_len -= chunk_len;
                 buffer_offset += chunk_len;
                 frame_offset += chunk_len;
@@ -374,23 +368,23 @@ public:
                 {
                     Debug_LOG_ERROR("[%s] partial frame received, %zu of %zu bytes",
                                     devname, frame_offset, frame_len);
-                    Debug_ASSERT( partialFrame );
-                    Debug_ASSERT( 0 == buffer_len );
+                    Debug_ASSERT(partialFrame);
+                    Debug_ASSERT(0 == buffer_len);
                     return 0;
                 }
 
                 // we have received a full frame.
                 if (!doDropFrame)
                 {
-                    void* b = out_buffer;
+                    void *b = out_buffer;
                     if (!partialFrame)
                     {
-                        Debug_ASSERT( buffer_offset >= frame_len );
+                        Debug_ASSERT(buffer_offset >= frame_len);
                         b = &buf[buffer_offset - frame_len];
                     }
 
                     Debug_LOG_INFO("[%s] writing frame of %zu bytes",
-                                    devname, frame_len);
+                                   devname, frame_len);
                     int ret = write(tapfd, b, frame_len);
                     if (ret < 0)
                     {
@@ -400,7 +394,7 @@ public:
                         break;
                     }
 
-                    if ( (unsigned)ret != frame_len)
+                    if ((unsigned)ret != frame_len)
                     {
                         Debug_LOG_ERROR("[%s] write() did write only %d",
                                         devname, ret);
@@ -421,32 +415,28 @@ public:
                 Debug_ASSERT(false); // we should never be here
                 break;
             } // end switch (state)
-        } // end for(;;)
+        }     // end for(;;)
 
         return 0;
     } // end of write
 
-
-
     int Close()
     {
-          Debug_LOG_DEBUG("Tap Close called");
-          return close(tapfd);
+        Debug_LOG_DEBUG("Tap Close called");
+        return close(tapfd);
     }
-
 
     int GetFileDescriptor() const
     {
-          return tapfd;
+        return tapfd;
     }
 
-
-    int getMac(const char* name, uint8_t *mac)
+    int getMac(const char *name, uint8_t *mac)
     {
         Debug_LOG_DEBUG("device '%s'", name);
 
         int sck = socket(AF_INET, SOCK_DGRAM, 0);
-        if(sck < 0)
+        if (sck < 0)
         {
             Debug_LOG_ERROR("socket() failed, error %d", sck);
             return -1;
@@ -477,11 +467,10 @@ public:
         //       one day.
         mac_tap[5]++;
 
-        Debug_LOG_DEBUG("MAC %02x:%02x:%02x:%02x:%02x:%02x", mac[0],mac[1],mac[2],mac[3],mac[4],mac[5]);
+        Debug_LOG_DEBUG("MAC %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
         return 0;
     }
-
 
     std::vector<char> HandlePayload(vector<char> buffer)
     {
@@ -489,65 +478,61 @@ public:
 
         switch (command)
         {
-            //-----------------------------------------------------------
-            case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC:
+        //-----------------------------------------------------------
+        case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_GETMAC:
+        {
+            unsigned int channel = buffer[1];
+            Debug_LOG_DEBUG("command GET_MAC for channel %d", channel);
+            vector<char> result(7, 0);
+            vector<uint8_t> mac(6, 0);
+
+            switch (channel)
             {
-                unsigned int channel = buffer[1];
-                Debug_LOG_DEBUG("command GET_MAC for channel %d", channel);
-                vector<char> result(7,0);
-                vector<uint8_t> mac(6,0);
+            //-----------------------------------------------------------
+            case UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW:
+                getMac("tap0", &mac[0]);
+                break;
 
-                switch (channel)
-                {
-                    //-----------------------------------------------------------
-                    case UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW:
-                        getMac("tap0",&mac[0]);
-                        break;
-
-                    //-----------------------------------------------------------
-                    case UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2:
-                        getMac("tap1",&mac[0]);
-                        break;
-
-                    //-----------------------------------------------------------
-                    default:
-                        Debug_LOG_ERROR("unsupported channel %d", channel);
-                        result[0] = -1;
-                        return result;
-                } // end switch(command)
-
-                result[0] = 0;
-                memcpy(&result[1],&mac[0],6);
-                return result;
-            }
+            //-----------------------------------------------------------
+            case UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2:
+                getMac("tap1", &mac[0]);
+                break;
 
             //-----------------------------------------------------------
             default:
-                break;
+                Debug_LOG_ERROR("unsupported channel %d", channel);
+                result[0] = -1;
+                return result;
+            } // end switch(command)
+
+            result[0] = 0;
+            memcpy(&result[1], &mac[0], 6);
+            return result;
+        }
+
+        //-----------------------------------------------------------
+        default:
+            break;
         } // end switch(command)
 
         Debug_LOG_ERROR("unknown command 0x%02x", command);
-        vector<char> result(1,0);
+        vector<char> result(1, 0);
         result[0] = -1;
         return result;
     }
 
-
     ~Tap()
     {
-          close(tapfd);
+        close(tapfd);
     }
-
 
 private:
     int tapfd;
-    uint8_t mac_tap[6];  /* Save tap mac addr and name for later use for filtering data */
+    uint8_t mac_tap[6]; /* Save tap mac addr and name for later use for filtering data */
     char devname[10] = {0};
 
     void error(const char *msg) const
     {
-          Debug_LOG_ERROR("%s", msg);
+        Debug_LOG_ERROR("%s", msg);
     }
-
 };
-
