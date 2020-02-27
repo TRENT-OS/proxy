@@ -17,7 +17,7 @@ using namespace std;
 
 class ServerSocket
 {
-    public:
+public:
     ServerSocket(int port, bool useRebindProtection = true)
     {
         struct sockaddr_in serv_addr;
@@ -25,7 +25,7 @@ class ServerSocket
         sockfd = socket(AF_INET, SOCK_STREAM, 0);
         if (sockfd < 0)
         {
-            error("ERROR opening socket");
+            fprintf(stderr, "ERROR opening socket %d ", sockfd);
             return;
         }
 
@@ -37,18 +37,18 @@ class ServerSocket
             int enable = 1;
             if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0)
             {
-                error("ERROR using setsockopt");
+                fprintf(stderr, "ERROR using setsockopt");
                 close(sockfd);
                 sockfd = -1;
                 return;
             }
         }
 
-        bzero((char *) &serv_addr, sizeof(serv_addr));
+        bzero((char *)&serv_addr, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_addr.s_addr = INADDR_ANY;
         serv_addr.sin_port = htons(port);
-        if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+        if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
         {
             error("ERROR on binding");
             close(sockfd);
@@ -79,9 +79,9 @@ class ServerSocket
         return fd;
     }
 
-    bool IsOpen() const { return sockfd >= 0;}
+    bool IsOpen() const { return sockfd >= 0; }
 
-    private:
+private:
     int sockfd;
 
     void error(const char *msg) const
