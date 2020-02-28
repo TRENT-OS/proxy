@@ -32,7 +32,7 @@
 
 using namespace std;
 
-#define ENABLE_TAP_FILTER 0 /* Enable or disable the filter */
+#define ENABLE_TAP_FILTER 1 /* Enable or disable the filter */
 
 #define FRAME_LENGTH_IN_BYTES 2 /* First 2 bytes contain frame length*/
 
