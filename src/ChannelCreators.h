@@ -2,7 +2,6 @@
 
 #include "LibDebug/Debug.h"
 #include "CloudSocketCreator.h"
-#include "PicoCloudSocketCreator.h"
 #include "TapChannelCreator.h"
 #include "NvmChannelCreator.h"
 #include "ChanMuxTestChannelCreator.h"
@@ -19,15 +18,10 @@ private:
     map<int, IoDeviceCreator*>  creators;
 
 public:
-    ChannelCreators(string hostName, int port, bool use_pico, bool use_tap)
+    ChannelCreators(string hostName, int port, bool use_tap)
     {
         // UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN has a separate handling
-        if (use_pico)
-        {
-            creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] =
-                    new PicoCloudSocketCreator(port, hostName);
-        }
-        else if(use_tap == 0 &&  use_pico ==0)
+        if(use_tap == 0)
         {
             creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] =
                     new CloudSocketCreator{port, hostName};

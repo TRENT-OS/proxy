@@ -24,7 +24,7 @@ class InputDevice
 
 };
 
-// Used by SocketAdmin.cpp. Up to now represents a Linux socket. Later on: wrapper for TUN interface; PICO socket.
+// Used by SocketAdmin.cpp. Up to now represents a Linux socket. Later on: wrapper for TUN interface.
 class IoDevice
 {
     public:

@@ -67,8 +67,6 @@ public:
 
     std::vector<char> HandlePayload(vector<char> buffer)
     {
-        static uint8_t lastTestResult = 0;
-
         uint32_t payloadLength = 0;
         vector<char> response;
 

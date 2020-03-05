@@ -4,10 +4,3 @@
 [submodule "TinyFrame"]
 	path = TinyFrame
 	url = ../../ext/tinyframe.git
-[submodule "picotcp"]
-	path = picotcp
-	url = ../../ext/picotcp.git
-[submodule "picotcp-bsd"]
-	path = picotcp-bsd
-	url = ../../ext/picotcp-bsd.git
-	branch = picobsd_changes_mqtt_proxy

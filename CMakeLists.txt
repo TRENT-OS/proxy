@@ -17,17 +17,6 @@ seos_use_libs(
 
 add_subdirectory(${SANDBOX_SOURCE_PATH}/projects/libs sandbox_build)
 
-
-#-------------------------------------------------------------------------------
-# PicoTCP
-
-set(PICO_PATH "picotcp/build/lib")
-set(PICO_INCLUDE_PATH "picotcp/build/include")
-set(PICO_BSD_PATH "picotcp-bsd")
-
-
-#-------------------------------------------------------------------------------
-
 project(proxy_app CXX)
 
 add_executable(${PROJECT_NAME}
@@ -48,10 +37,6 @@ target_include_directories(${PROJECT_NAME}
         uart_socket/src
         TinyFrame/demo
         src
-    PUBLIC
-        ${PICO_INCLUDE_PATH}
-        ${PICO_BSD_PATH}
-        ${PICO_PATH}
 )
 
 target_compile_options(${PROJECT_NAME}
@@ -64,9 +49,6 @@ target_link_libraries(${PROJECT_NAME}
     seos_core_api
     seos_libs
     pthread
-    ${CMAKE_CURRENT_SOURCE_DIR}/${PICO_BSD_PATH}/build/libpico-bsd.a
-    dl
-    ${CMAKE_CURRENT_SOURCE_DIR}/${PICO_PATH}/libpicotcp.a
 )
 
 #-------------------------------------------------------------------------------

@@ -12,32 +12,6 @@ if [ "$#" -ne 1 ]; then
 fi
 SANDBOX_PATH=$1
 
-
-PICO_SRC=${BUILD_SCRIPT_DIR}/picotcp
-PICO_BSD=${BUILD_SCRIPT_DIR}/picotcp-bsd
-
-if [[ ! -d ${PICO_SRC} ]]; then
-    echo "Please add picotcp as a submodule!"
-    exit 1
-else
-    (
-        cd ${PICO_SRC}
-        make clean
-        make TAP=1
-    )
-fi
-
-if [[ ! -d ${PICO_BSD} ]]; then
-    echo "Please add picotcp-bsd as a submodule!"
-    exit 1
-else
-    (
-        cd ${PICO_BSD}
-        make clean
-        make
-    )
-fi
-
 if [[ -e ${BUILD_DIR} ]] && [[ ! -e ${BUILD_DIR}/rules.ninja ]]; then
     echo "clean broken build folder and re-initialize it"
     rm -rf ${BUILD_DIR}

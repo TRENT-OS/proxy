@@ -5,22 +5,13 @@
 #include "MqttCloud.h"
 #include "utils.h"
 
-extern __thread int in_the_stack;
-extern int use_pico;
 void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pseudoDevice, unsigned int logicalChannel, InputDevice *channel)
 {
 
     size_t bufSize = 2048;    //256;
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
-    if(use_pico)
-    {
-    	in_the_stack=0;
-    }
-    else
-    {
-    	in_the_stack=1;
-    }
+
     GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
 
     if (!guestConnector.IsOpen())

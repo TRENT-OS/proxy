@@ -20,13 +20,6 @@
 
 #define LAN_PORT 7999
 
-int use_pico = 0; // By default disable picotcp
-extern __thread int in_the_stack;
-extern "C"
-{
-    extern void pico_tick_thread(void *arg);
-    extern void pico_wrapper_start();
-}
 using namespace std;
 
 string UartSocketCommand(UartSocketGuestSocketCommand command)
@@ -73,12 +66,6 @@ void WriteToGuest(SharedResource<PseudoDevice> *pseudoDevice, unsigned int logic
     int writtenBytes;
     GuestConnector guestConnector(pseudoDevice, GuestConnector::GuestDirection::TO_GUEST);
 
-    in_the_stack = 1;
-
-    if (use_pico == 1)
-    {
-        in_the_stack = 0; // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
-    }
     if (!guestConnector.IsOpen())
     {
         Debug_LOG_FATAL("WriteToGuest[%1d]: pseudo device not open.\n", logicalChannel);
@@ -258,13 +245,6 @@ void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin,
 
     Debug_LOG_INFO("FromGuestThread: starting.\n");
 
-    /* Why is this necessary ? */
-    if (use_pico == 1)
-    {
-        in_the_stack = 0; // is the per thread variable used by pico-bsd. To use Pico stack it must be zero
-        pthread_setname_np(pthread_self(), s.c_str());
-    }
-
     try
     {
         while (KeepFromGuestThreadAlive)
@@ -336,15 +316,6 @@ void LanServer(ChannelAdmin *channelAdmin, unsigned int lanPort)
     }
 }
 
-// Tick thread of PicoTCP. Thread called every 1 ms
-void PicoTickThread()
-{
-    string s = "PicoTickThread";
-    Debug_LOG_INFO("PicoTickThread: starting.\n");
-    pthread_setname_np(pthread_self(), s.c_str());
-    pico_tick_thread(NULL);
-}
-
 int main(int argc, char *argv[])
 {
     // set default values
@@ -410,29 +381,13 @@ int main(int argc, char *argv[])
         printf("extra arguments: %s\n", argv[optind]);
     }
 
-    printf("Starting proxy app on lan port: %d of type %s with connection param: %s using cloud host: %s port: %d use_pico:%d, use_tap:%d \n",
+    printf("Starting proxy app on lan port: %d of type %s with connection param: %s using cloud host: %s port: %d, use_tap:%d \n",
            lanPort,
            connectionType.c_str(),
            connectionParam.c_str(),
            hostName.c_str(),
            port,
-           use_pico,
            use_tap);
-
-    /* Has to be called because pico_wrapper_start() steals the socket api's to decide to use linux or pico.
-     * I see that when we link Pico as static lib, all the socket calls such as socket(), connect(), bind() etc
-     * of the pico library is always used instead of the direct socket calls from the C lib. Hence its important to call this
-     * without which nothing works.
-     */
-    pico_wrapper_start();
-
-    if (use_pico == 1)
-    {
-        new thread{PicoTickThread};
-    }
-
-    /* TBD: is this for overloading / redirecting the socket function calls for PICO TCP? */
-    in_the_stack = 1; // it must be 1 for host system = linux
 
     /* Shared resource used because multithreaded access to pseudodevice not working. With QEMU using sockets: may not be needed any more.*/
     PseudoDevice parsedDevice{&connectionParam, &type};
@@ -451,7 +406,7 @@ int main(int argc, char *argv[])
     // a) receiving all hdlc frames and distributing them to the channels
     // b) handling the channel admin commands from the guest
 
-    ChannelCreators channelCreators(hostName, port, use_pico, use_tap);
+    ChannelCreators channelCreators(hostName, port, use_tap);
 
     thread fromGuestThread{
         FromGuestThread,
