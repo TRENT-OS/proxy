@@ -2,7 +2,6 @@
 #include "ChannelAdmin.h"
 #include "GuestConnector.h"
 #include "LibDebug/Debug.h"
-#include "MqttCloud.h"
 #include "utils.h"
 
 void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pseudoDevice, unsigned int logicalChannel, InputDevice *channel)

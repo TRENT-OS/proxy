@@ -6,8 +6,8 @@
 #include "ServerSocket.h"
 #include "SharedResource.h"
 #include "Channel.h"
-#include "MqttCloud.h"
 #include "ChannelAdmin.h"
+#include "ChannelCreators.h"
 #include "LanServerChannel.h"
 #include "LibDebug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
@@ -15,8 +15,6 @@
 #include <chrono>
 #include <thread>
 #include <unistd.h>
-
-#include "ChannelCreators.h"
 
 #define LAN_PORT 7999
 
@@ -323,13 +321,11 @@ int main(int argc, char *argv[])
     string connectionType = "TCP";
     string connectionParam = "4444";
     int lanPort = LAN_PORT;
-    int port = SERVER_PORT;
-    string hostName{SERVER_NAME};
     int use_tap = 0;
 
     int opt;
     char delim[] = ":";
-    while ((opt = getopt(argc, argv, "c:l:p:t:d:h")) != -1)
+    while ((opt = getopt(argc, argv, "c:l:t:h")) != -1)
     {
         switch (opt)
         {
@@ -358,17 +354,11 @@ int main(int argc, char *argv[])
         case 'l':
             lanPort = atoi(optarg);
             break;
-        case 'p':
-            port = atoi(optarg);
-            break;
         case 't':
             use_tap = atoi(optarg);
             break;
-        case 'd':
-            hostName = optarg;
-            break;
         case 'h':
-            printf("Usage: -c [<connectionType>:<Param>] -l [lan port] -d [cloud_host_name] -p [cloud_port] -t [tap_number]\n");
+            printf("Usage: -c [<connectionType>:<Param>] -l [lan port] -t [tap_number]\n");
             return 0;
         case '?':
             printf("unknown option: %c\n", optopt);
@@ -381,12 +371,10 @@ int main(int argc, char *argv[])
         printf("extra arguments: %s\n", argv[optind]);
     }
 
-    printf("Starting proxy app on lan port: %d of type %s with connection param: %s using cloud host: %s port: %d, use_tap:%d \n",
+    printf("Starting proxy app on lan port: %d of type %s with connection param: %s, use_tap:%d \n",
            lanPort,
            connectionType.c_str(),
            connectionParam.c_str(),
-           hostName.c_str(),
-           port,
            use_tap);
 
     /* Shared resource used because multithreaded access to pseudodevice not working. With QEMU using sockets: may not be needed any more.*/
@@ -406,7 +394,7 @@ int main(int argc, char *argv[])
     // a) receiving all hdlc frames and distributing them to the channels
     // b) handling the channel admin commands from the guest
 
-    ChannelCreators channelCreators(hostName, port, use_tap);
+    ChannelCreators channelCreators(use_tap);
 
     thread fromGuestThread{
         FromGuestThread,

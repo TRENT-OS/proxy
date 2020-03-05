@@ -1,7 +1,6 @@
 #pragma once
 
 #include "LibDebug/Debug.h"
-#include "CloudSocketCreator.h"
 #include "TapChannelCreator.h"
 #include "NvmChannelCreator.h"
 #include "ChanMuxTestChannelCreator.h"
@@ -18,15 +17,10 @@ private:
     map<int, IoDeviceCreator*>  creators;
 
 public:
-    ChannelCreators(string hostName, int port, bool use_tap)
+    ChannelCreators(bool use_tap)
     {
         // UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN has a separate handling
-        if(use_tap == 0)
-        {
-            creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] =
-                    new CloudSocketCreator{port, hostName};
-        }
-        else
+        if(use_tap != 0)
         {
             creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW] =
                     new TapChannelCreator("tap0");
