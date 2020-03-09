@@ -33,10 +33,10 @@ run build, will create a folder "build" with the application binary
     src/build.sh
 
 ### Synopsis
-    ./proxy_app -c [<connectionType>:<Param>] -l [lan port] -t [tap_number]
+    ./proxy_app -c [<connectionType>:<Param>] -t [tap_number]
 
 
 ### Example usage
-Run application and connect to QEMU on TCP port 4444, listen on local port 7999 for MQTT packets, using a TAP with the number 1
+Run application and connect to QEMU on TCP port 4444, using a TAP with the number 1
 
-    build/proxy_app -c TCP:4444 -l 7999 -t 1
+    build/proxy_app -c TCP:4444 -t 1

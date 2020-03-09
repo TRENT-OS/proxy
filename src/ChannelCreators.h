@@ -20,7 +20,7 @@ public:
     ChannelCreators(bool use_tap)
     {
         // UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN has a separate handling
-        if(use_tap != 0)
+        if(use_tap)
         {
             creators[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW] =
                     new TapChannelCreator("tap0");

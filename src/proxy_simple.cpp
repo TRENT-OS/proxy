@@ -8,15 +8,12 @@
 #include "Channel.h"
 #include "ChannelAdmin.h"
 #include "ChannelCreators.h"
-#include "LanServerChannel.h"
 #include "LibDebug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
 #include <chrono>
 #include <thread>
 #include <unistd.h>
-
-#define LAN_PORT 7999
 
 using namespace std;
 
@@ -274,58 +271,17 @@ void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin,
     }
 }
 
-void LanServer(ChannelAdmin *channelAdmin, unsigned int lanPort)
-{
-    ServerSocket serverSocket(lanPort);
-    socklen_t clientLength;
-    struct sockaddr_in clientAddress;
-    unsigned int logicalChannel = UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN;
-
-    if (!serverSocket.IsOpen())
-    {
-        Debug_LOG_ERROR("LanServer: Error: could not create server socket\n");
-        return;
-    }
-
-    serverSocket.Listen(5);
-
-    try
-    {
-        while (true)
-        {
-            clientLength = sizeof(clientAddress);
-            int newsockfd = serverSocket.Accept((struct sockaddr *)&clientAddress, &clientLength);
-
-            if (channelAdmin->GetChannel(logicalChannel) == nullptr)
-            {
-                Debug_LOG_INFO("LanServer: start server thread: in port %d, in address %x (file descriptor: %x)\n", clientAddress.sin_port, clientAddress.sin_addr.s_addr, newsockfd);
-                channelAdmin->ActivateChannel(logicalChannel, new LanServerChannel{newsockfd});
-            }
-            else
-            {
-                Debug_LOG_ERROR("LanServer: Error: do not start a new to-guest thread for LAN because such a thread is already active\n");
-                close(newsockfd);
-            }
-        }
-    }
-    catch (...)
-    {
-        Debug_LOG_ERROR("LanServer exception\n");
-    }
-}
-
 int main(int argc, char *argv[])
 {
     // set default values
     DeviceType type = DEVICE_TYPE_SOCKET;
     string connectionType = "TCP";
     string connectionParam = "4444";
-    int lanPort = LAN_PORT;
     int use_tap = 0;
 
     int opt;
     char delim[] = ":";
-    while ((opt = getopt(argc, argv, "c:l:t:h")) != -1)
+    while ((opt = getopt(argc, argv, "c:t:h")) != -1)
     {
         switch (opt)
         {
@@ -351,14 +307,11 @@ int main(int argc, char *argv[])
             }
             connectionParam = strtok(NULL, delim);
             break;
-        case 'l':
-            lanPort = atoi(optarg);
-            break;
         case 't':
             use_tap = atoi(optarg);
             break;
         case 'h':
-            printf("Usage: -c [<connectionType>:<Param>] -l [lan port] -t [tap_number]\n");
+            printf("Usage: -c [<connectionType>:<Param>] -t [tap_number]\n");
             return 0;
         case '?':
             printf("unknown option: %c\n", optopt);
@@ -371,8 +324,7 @@ int main(int argc, char *argv[])
         printf("extra arguments: %s\n", argv[optind]);
     }
 
-    printf("Starting proxy app on lan port: %d of type %s with connection param: %s, use_tap:%d \n",
-           lanPort,
+    printf("Starting proxy app of type %s with connection param: %s, use_tap:%d \n",
            connectionType.c_str(),
            connectionParam.c_str(),
            use_tap);
@@ -402,11 +354,7 @@ int main(int argc, char *argv[])
         &channelAdmin,
         &channelCreators};
 
-    // Handle the LAN socket
-    LanServer(&channelAdmin, lanPort);
-
-    // We only get here if something in the LanServer went wrong.
-    KeepFromGuestThreadAlive = false;
+    // KeepFromGuestThreadAlive = false;
     fromGuestThread.join();
 
     return 0;
