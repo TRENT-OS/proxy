@@ -16,11 +16,13 @@
 
 #define CMD_TEST_OVERFLOW       0
 #define CMD_TEST_FULL_DUPLEX    1
+#define CMD_TEST_MAX_SIZE       2
 
 #define MAX_MSG_LEN             4096
 
 #define REQ_COMM_INDEX          0
 #define REQ_ARG_INDEX           (REQ_COMM_INDEX + 1)
+#define REQ_PAYLOAD_INDEX       (REQ_ARG_INDEX + 4)
 //RETURN MESSAGES
 #define RET_OK                  0
 
@@ -90,6 +92,34 @@ public:
                 response.insert(response.begin(),
                                 buffer.begin() + offs,
                                 buffer.begin() + offs + payloadLength);
+                break;
+            }
+            case CMD_TEST_MAX_SIZE:
+            {
+                Debug_LOG_DEBUG("%s: got a CMD_TEST_MAX_SIZE", __func__);
+                payloadLength =
+                    m_cpyBufToInt((unsigned char*) &buffer[REQ_ARG_INDEX]);
+
+                size_t i = 0;
+                while (i < payloadLength)
+                {
+                    char expected = i % 256;
+                    if (buffer[i + REQ_PAYLOAD_INDEX] == expected)
+                    {
+                        i++;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                unsigned char data[4];
+                m_cpyIntToBuf(i, data);
+
+                response.insert(response.begin(),
+                                std::begin(data),
+                                std::end(data));
+
                 break;
             }
             default:
