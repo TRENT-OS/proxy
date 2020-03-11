@@ -273,6 +273,11 @@ void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin,
 
 int main(int argc, char *argv[])
 {
+    // Setting stdout to unbuffered mode, so that the writes don't get cached.
+    // If we don't do this when redirecting stdout to a logfile, writes won't
+    // be flushed until the buffer is full, '\n' doesn't flush the cache due
+    // to it not being an interactive terminal.
+    setbuf(stdout, NULL);
     // set default values
     DeviceType type = DEVICE_TYPE_SOCKET;
     string connectionType = "TCP";
