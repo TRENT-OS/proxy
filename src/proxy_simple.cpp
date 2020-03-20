@@ -3,7 +3,6 @@
  */
 
 #include "GuestConnector.h"
-#include "ServerSocket.h"
 #include "SharedResource.h"
 #include "Channel.h"
 #include "ChannelAdmin.h"
