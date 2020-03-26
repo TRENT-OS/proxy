@@ -235,8 +235,6 @@ void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin,
 {
     size_t bufSize = 4096;
     vector<char> buffer(bufSize);
-    string s = "FromGuestThread";
-
     Debug_LOG_INFO("FromGuestThread: starting.\n");
 
     try

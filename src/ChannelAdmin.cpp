@@ -4,6 +4,11 @@
 #include "LibDebug/Debug.h"
 #include "utils.h"
 
+bool is_network_tap_channel(unsigned int logicalChannel)
+{
+    return (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW  ||  logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2);
+}
+
 void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pseudoDevice, unsigned int logicalChannel, InputDevice *channel)
 {
 
@@ -191,10 +196,13 @@ int ChannelAdmin::ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevic
             // Register socket in GuestListeners
             guestListeners.SetListener(logicalChannel, ioDevice->GetOutputDevice());
 
-            // Create thread
-            toGuestThreads[logicalChannel] =
-            thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), ioDevice->GetInputDevice()};
-
+            /* Only create a thread for network communication (using the tap devices) */
+            if (is_network_tap_channel(logicalChannel))
+            {
+                // Create thread
+                toGuestThreads[logicalChannel] =
+                thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), ioDevice->GetInputDevice()};
+            }
         }
         else
         {
