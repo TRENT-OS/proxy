@@ -9,7 +9,7 @@ set(NO_KERNEL_BUILD ON CACHE BOOL "")
 set(SEOS_SANDBOX_PASSIVE_CMAKE ON)
 include(${SANDBOX_SOURCE_PATH}/CMakeLists.txt)
 
-seos_set_config_file(configs/include/Debug_Config.h)
+seos_set_config_file(system_config.h)
 
 seos_use_libs(
     SEOS_LIBS
