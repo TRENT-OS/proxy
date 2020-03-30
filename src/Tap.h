@@ -28,7 +28,7 @@
 #include "uart_socket_guest_rpc_conventions.h"
 #include "utils.h"
 #include "LibDebug/Debug.h"
-#include "seos_ethernet.h"
+#include "os_util/seos_ethernet.h"
 
 using namespace std;
 
@@ -145,7 +145,7 @@ public:
             return -1;
         }
 
-        // We read from the TAP device even when not forwarding to QEMU, 
+        // We read from the TAP device even when not forwarding to QEMU,
         // to prevent stale data in the FIFO. If we haven't reveiced a START yet
         // we ignore the packet we read into the buffer and return -1.
         if (!read_start)
