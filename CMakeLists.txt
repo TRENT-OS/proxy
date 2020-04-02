@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 #-------------------------------------------------------------------------------
-# configure and use sandbox
+# configure and use the SDK
 
 set(PAGE_SIZE_VALUE 4096 CACHE STRING "" FORCE)
 set(NO_KERNEL_BUILD ON CACHE BOOL "")
@@ -15,7 +15,7 @@ seos_use_libs(
     SEOS_LIBS
 )
 
-add_subdirectory(${SEOS_LIBS_DIR} sandbox_build)
+add_subdirectory(${SEOS_LIBS_DIR} sdk_build)
 
 project(proxy_app CXX)
 
