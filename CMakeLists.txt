@@ -17,6 +17,8 @@ seos_use_libs(
 
 add_subdirectory(${SEOS_LIBS_DIR} sdk_build)
 
+#-------------------------------------------------------------------------------
+
 project(proxy_app CXX)
 
 add_executable(${PROJECT_NAME}
