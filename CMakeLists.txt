@@ -43,6 +43,8 @@ target_include_directories(${PROJECT_NAME}
 
 target_compile_options(${PROJECT_NAME}
     PRIVATE
+        -Wall
+        -Werror
         -pthread
         -Wno-delete-non-virtual-dtor
 )
