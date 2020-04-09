@@ -34,7 +34,11 @@ add_executable(${PROJECT_NAME}
 
 # compile all files with the C++ compiler
 get_target_property(SOURCE_FILES ${PROJECT_NAME} SOURCES)
-set_source_files_properties(${SOURCE_FILES} PROPERTIES LANGUAGE CXX)
+set_source_files_properties(${SOURCE_FILES}
+    PROPERTIES
+        LANGUAGE CXX
+        COMPILE_OPTIONS "-Wno-delete-non-virtual-dtor"
+)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
@@ -47,7 +51,6 @@ target_compile_options(${PROJECT_NAME}
         -Wall
         -Werror
         -pthread
-        -Wno-delete-non-virtual-dtor
 )
 
 target_compile_definitions(${PROJECT_NAME}
