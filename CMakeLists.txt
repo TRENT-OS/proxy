@@ -13,6 +13,7 @@ seos_set_config_file(system_config.h)
 
 seos_use_libs(
     SEOS_LIBS
+    THIRD_PARTY_TINYFRAME
 )
 
 add_subdirectory(${SEOS_LIBS_DIR} sdk_build)
@@ -24,8 +25,6 @@ project(proxy_app CXX)
 add_executable(${PROJECT_NAME}
     uart_socket/src/uart_hdlc.c
     uart_socket/src/uart_io_host.c
-    TinyFrame/demo/utils.c
-    TinyFrame/TinyFrame.c
     src/proxy_simple.cpp
     src/ChannelAdmin.cpp
 )
@@ -37,7 +36,6 @@ set_source_files_properties(${SOURCE_FILES} PROPERTIES LANGUAGE CXX)
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         uart_socket/src
-        TinyFrame/demo
         src
 )
 
@@ -50,7 +48,8 @@ target_compile_options(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
+    pthread
     seos_core_api
     seos_libs
-    pthread
+    third_party_tinyframe_static_cpp
 )
