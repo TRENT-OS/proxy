@@ -2,7 +2,6 @@
 #include "ChannelAdmin.h"
 #include "GuestConnector.h"
 #include "LibDebug/Debug.h"
-#include "utils.h"
 
 bool is_network_tap_channel(unsigned int logicalChannel)
 {

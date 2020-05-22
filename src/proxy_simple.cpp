@@ -9,7 +9,6 @@
 #include "ChannelCreators.h"
 #include "LibDebug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
-#include "utils.h"
 #include <chrono>
 #include <thread>
 #include <unistd.h>

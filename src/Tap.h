@@ -26,7 +26,6 @@
 #include <linux/if_tun.h>
 #include <sys/poll.h>
 #include "uart_socket_guest_rpc_conventions.h"
-#include "utils.h"
 #include "LibDebug/Debug.h"
 #include "os_util/seos_ethernet.h"
 
