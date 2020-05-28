@@ -27,7 +27,7 @@
 #include <sys/poll.h>
 #include "uart_socket_guest_rpc_conventions.h"
 #include "LibDebug/Debug.h"
-#include "os_util/seos_ethernet.h"
+#include "os_util/OS_Ethernet.h"
 
 using namespace std;
 
@@ -92,12 +92,12 @@ typedef struct
     arp_ethernet_ipv4_t arp_ipv4;
 } packet_ethernet_arp_ipv4_t;
 
-// this IP address is assigned by a SEOS system to a network interface. We use
-// a the well know default from the SEOS Network Test here, it must be adopted
-// if another SEOS system uses something else. And actually, the NIC driver in
-// the SEOS system should be able to enable this filter on demand with a
+// this IP address is assigned by an OS to a network interface. We use
+// a the well know default from the OS Network Test here, it must be adopted
+// if another system uses something else. And actually, the NIC driver in
+// the system should be able to enable this filter on demand with a
 // command, so we don't have anything to hard-coded here at all. The Proxy
-// should be agnostic of how a SEOS system uses the network interface.
+// should be agnostic of how a system uses the network interface.
 const ipv4_addr_t TAP1_IP_ADDR = {192, 168, 82, 92};
 
 #endif
@@ -470,7 +470,7 @@ public:
         memcpy(mac_tap, mac, 6);
         strncpy(devname, name, 5);
 
-        // ToDo: why do we do this? Any why does the SEOS NIC driver do the
+        // ToDo: why do we do this? Any why does the OS NIC driver do the
         //       same thing also. Seem this is another quirk to be clarified
         //       one day.
         mac_tap[5]++;

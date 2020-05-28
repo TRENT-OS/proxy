@@ -9,14 +9,14 @@ set(NO_KERNEL_BUILD ON CACHE BOOL "")
 set(OS_SDK_PASSIVE_CMAKE ON)
 include(${OS_SDK_SOURCE_PATH}/CMakeLists.txt)
 
-seos_set_config_file(system_config.h)
+os_set_config_file(system_config.h)
 
-seos_use_libs(
-    SEOS_LIBS
+os_use_libs(
+    OS_LIBS
     THIRD_PARTY_TINYFRAME
 )
 
-add_subdirectory(${SEOS_LIBS_DIR} sdk_build)
+add_subdirectory(${OS_LIBS_DIR} sdk_build)
 
 #-------------------------------------------------------------------------------
 
