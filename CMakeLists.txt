@@ -54,8 +54,9 @@ target_compile_options(${PROJECT_NAME}
 )
 
 target_link_libraries(${PROJECT_NAME}
-    pthread
-    os_core_api
-    os_libs
-    third_party_tinyframe_static_cpp
+    PRIVATE
+        pthread
+        os_core_api
+        os_libs
+        third_party_tinyframe_static_cpp
 )
