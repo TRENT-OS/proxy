@@ -11,15 +11,8 @@ cmake_minimum_required(VERSION 3.10)
 
 set(OS_SDK_PASSIVE_CMAKE ON)
 include(${OS_SDK_SOURCE_PATH}/CMakeLists.txt)
-
 os_set_config_file(system_config.h)
-
-os_use_libs(
-    OS_LIBS
-    THIRD_PARTY_TINYFRAME
-)
-
-add_subdirectory(${OS_LIBS_DIR} sdk_build)
+add_os_libs_subdirectories()
 
 
 #-------------------------------------------------------------------------------
