@@ -23,8 +23,8 @@ add_subdirectory(${OS_LIBS_DIR} sdk_build)
 project(proxy_app CXX)
 
 add_executable(${PROJECT_NAME}
-    uart_socket/src/uart_hdlc.c
-    uart_socket/src/uart_io_host.c
+    src/uart_socket/uart_hdlc.c
+    src/uart_socket/uart_io_host.c
     src/proxy_simple.cpp
     src/ChannelAdmin.cpp
 )
@@ -35,7 +35,7 @@ set_source_files_properties(${SOURCE_FILES} PROPERTIES LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
-        uart_socket/src
+        src/uart_socket/
         src
 )
 

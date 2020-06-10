@@ -1,0 +1,9 @@
+#pragma once
+
+typedef enum
+{
+    DEVICE_TYPE_PSEUDO_CONSOLE,
+    DEVICE_TYPE_SOCKET,
+    DEVICE_TYPE_RAW_SERIAL,
+    DEVICE_TYPE_UNKOWN
+} DeviceType;
