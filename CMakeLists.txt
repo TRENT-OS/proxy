@@ -41,7 +41,7 @@ set_source_files_properties(${SOURCE_FILES} PROPERTIES LANGUAGE CXX)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
-        src/uart_socket/
+        src/uart_socket
         src
 )
 
