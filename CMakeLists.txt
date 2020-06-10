@@ -23,7 +23,7 @@ add_subdirectory(${OS_LIBS_DIR} sdk_build)
 
 
 #-------------------------------------------------------------------------------
-project(proxy_app CXX)
+project(proxy_app C CXX)
 
 add_executable(${PROJECT_NAME}
     src/uart_socket/uart_hdlc.c
