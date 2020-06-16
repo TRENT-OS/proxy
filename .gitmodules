@@ -1,3 +1,0 @@
-[submodule "uart_socket"]
-	path = uart_socket
-	url = ../../hc/uart_socket.git
