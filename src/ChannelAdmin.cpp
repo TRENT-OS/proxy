@@ -19,11 +19,11 @@ void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pse
 
     if (!guestConnector.IsOpen())
     {
-        Debug_LOG_FATAL("ToGuestThread[%1d]: pseudo device not open.\n", logicalChannel);
+        Debug_LOG_FATAL("ToGuestThread[%1d]: pseudo device not open.", logicalChannel);
         return;
     }
 
-    Debug_LOG_DEBUG("ToGuestThread[%1d]: starting...\n", logicalChannel);
+    Debug_LOG_DEBUG("ToGuestThread[%1d]: starting...", logicalChannel);
 
     try
     {
@@ -62,10 +62,10 @@ void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pse
 
             if (readBytes > 0)
             {
-                Debug_LOG_DEBUG("ToGuestThread[%1d]: bytes received from socket: %d.\n", logicalChannel, readBytes);
+                Debug_LOG_DEBUG("ToGuestThread[%1d]: bytes received from socket: %d.", logicalChannel, readBytes);
                 if (readBytes >= 2)
                 {
-                    Debug_LOG_DEBUG("ToGuestThread[%1d]: first bytes: %02x %02x\n", logicalChannel, buffer[0], buffer[1]);
+                    Debug_LOG_DEBUG("ToGuestThread[%1d]: first bytes: %02x %02x", logicalChannel, buffer[0], buffer[1]);
                 }
 
                 fflush(stdout);
@@ -74,7 +74,7 @@ void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pse
 
                 if (writtenBytes < 0)
                 {
-                    Debug_LOG_ERROR("ToGuestThread[%1d]: guest write failed.\n", logicalChannel);
+                    Debug_LOG_ERROR("ToGuestThread[%1d]: guest write failed.", logicalChannel);
                     fflush(stdout);
                 }
             }
@@ -83,7 +83,7 @@ void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pse
                 // Has the cloud server closed the connection?
                 if (readBytes == 0)
                 {
-                    Debug_LOG_DEBUG("ToGuestThread[%1d]: closing client connection thread. Read result: %d\n", logicalChannel, readBytes);
+                    Debug_LOG_DEBUG("ToGuestThread[%1d]: closing client connection thread. Read result: %d", logicalChannel, readBytes);
                     break;
                 }
             }
@@ -91,30 +91,30 @@ void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pse
     }
     catch (...)
     {
-        Debug_LOG_ERROR("ToGuestThread[%1d] exception\n", logicalChannel);
+        Debug_LOG_ERROR("ToGuestThread[%1d] exception", logicalChannel);
     }
 
-    Debug_LOG_DEBUG("ToGuestThread[%1d]: closing socket\n", logicalChannel);
+    Debug_LOG_DEBUG("ToGuestThread[%1d]: closing socket", logicalChannel);
 
     if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN_CONTROL_CHANNEL) // TODO: remove (there is no control channel thread any more)
     {
-        Debug_LOG_ERROR("ToGuestThread[%1d]: Unexpected stop of control channel thread !!!!!\n", logicalChannel);
+        Debug_LOG_ERROR("ToGuestThread[%1d]: Unexpected stop of control channel thread !!!!!", logicalChannel);
     }
     else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN)
     {
-        Debug_LOG_INFO("ToGuestThread[%1d]: the WAN socket was closed\n", logicalChannel);
+        Debug_LOG_INFO("ToGuestThread[%1d]: the WAN socket was closed", logicalChannel);
     }
     else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_LAN)
     {
-        Debug_LOG_INFO("ToGuestThread[%1d]: closing the current LAN client connection\n", logicalChannel);
+        Debug_LOG_INFO("ToGuestThread[%1d]: closing the current LAN client connection", logicalChannel);
     }
     else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
     {
-        Debug_LOG_INFO("ToGuestThread[%1d]: closing the current NW client connection\n", logicalChannel);
+        Debug_LOG_INFO("ToGuestThread[%1d]: closing the current NW client connection", logicalChannel);
     }
     else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2)
     {
-        Debug_LOG_INFO("ToGuestThread[%1d]: closing the current NW-2 client connection\n", logicalChannel);
+        Debug_LOG_INFO("ToGuestThread[%1d]: closing the current NW-2 client connection", logicalChannel);
     }
 
 
@@ -144,11 +144,11 @@ void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pse
             }
         }
 
-        Debug_LOG_DEBUG("ToGuestThread[%1d]: deactivating the socket; unsolicited: %s \n", logicalChannel, (unsolicited ? "true" : "false"));
+        Debug_LOG_DEBUG("ToGuestThread[%1d]: deactivating the socket; unsolicited: %s ", logicalChannel, (unsolicited ? "true" : "false"));
         channelAdmin->DeactivateChannel(logicalChannel, unsolicited);
     }
 
-    Debug_LOG_DEBUG("ToGuestThread[%1d]: completed\n", logicalChannel);
+    Debug_LOG_DEBUG("ToGuestThread[%1d]: completed", logicalChannel);
 }
 
 // Possible contexts how to get here:
@@ -160,14 +160,14 @@ int ChannelAdmin::ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevic
     // Check the logical channel is valid
     if (logicalChannel >= UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
-        Debug_LOG_INFO("ActivateChannel: %d\n", -1);
+        Debug_LOG_INFO("ActivateChannel: %d", -1);
         return -1;
     }
 
     // Check valid arguments
     if (ioDevice == nullptr)
     {
-        Debug_LOG_ERROR("ActivateChannel: bad input args\n");
+        Debug_LOG_ERROR("ActivateChannel: bad input args");
         return -1;
     }
 
@@ -205,17 +205,17 @@ int ChannelAdmin::ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevic
         }
         else
         {
-           Debug_LOG_ERROR("ActivateChannel: error creating io devices\n");
+           Debug_LOG_ERROR("ActivateChannel: error creating io devices");
         }
     }
     else
     {
-        Debug_LOG_ERROR("ActivateChannel: do not activate - logical channel already exisiting\n");
+        Debug_LOG_ERROR("ActivateChannel: do not activate - logical channel already exisiting");
     }
 
     lock.unlock();
 
-    Debug_LOG_DEBUG("ActivateChannel: %d\n", result);
+    Debug_LOG_DEBUG("ActivateChannel: %d", result);
 
     if (result  < 0)
     {
@@ -259,7 +259,7 @@ int ChannelAdmin::DeactivateChannel(unsigned int logicalChannel, bool unsolicite
 
     lock.unlock();
 
-    Debug_LOG_DEBUG("DeactivateChannel: %d\n", result);
+    Debug_LOG_DEBUG("DeactivateChannel: %d", result);
 
     return result;
 }

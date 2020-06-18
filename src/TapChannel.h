@@ -40,9 +40,9 @@ class TapChannel : public IoDevice
 
     int Create()
     {
-    	Debug_LOG_INFO("TapSocket: create TAP Dev socket start: %s:%d\n",__FUNCTION__,tapfd);
+    	Debug_LOG_INFO("TapSocket: create TAP Dev socket start: %s:%d",__FUNCTION__,tapfd);
         channel = new Tap(tapfd);
-        Debug_LOG_INFO("TapSocket: create TAP Dev socket end: %s:%p\n",__FUNCTION__,channel);
+        Debug_LOG_INFO("TapSocket: create TAP Dev socket end: %s:%p",__FUNCTION__,channel);
 
         return 0;
     }

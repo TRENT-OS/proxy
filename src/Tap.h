@@ -151,7 +151,7 @@ public:
         {
             if (!printed_to_log)
             {
-                Debug_LOG_INFO("Not reading from TAP device %s until START is received\n", devname);
+                Debug_LOG_INFO("Not reading from TAP device %s until START is received", devname);
                 printed_to_log = true;
             }
             return -1; // Dont read anything until read_start is true
@@ -518,14 +518,14 @@ public:
 
         //-----------------------------------------------------------
         case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_START_READ:
-            Debug_LOG_DEBUG("command START_READ for channel %d\n", channel);
+            Debug_LOG_DEBUG("command START_READ for channel %d", channel);
             read_start = true;
             result[0] = 0;
             return result;
 
         //-----------------------------------------------------------
         case UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_STOP_READ:
-            Debug_LOG_DEBUG("command STOP_READ for channel %d\n", channel);
+            Debug_LOG_DEBUG("command STOP_READ for channel %d", channel);
             read_start = false;
             printed_to_log = false;
             result[0] = 0;

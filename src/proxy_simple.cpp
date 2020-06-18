@@ -61,7 +61,7 @@ void WriteToGuest(SharedResource<PseudoDevice> *pseudoDevice, unsigned int logic
 
     if (!guestConnector.IsOpen())
     {
-        Debug_LOG_FATAL("WriteToGuest[%1d]: pseudo device not open.\n", logicalChannel);
+        Debug_LOG_FATAL("WriteToGuest[%1d]: pseudo device not open.", logicalChannel);
         return;
     }
 
@@ -70,12 +70,12 @@ void WriteToGuest(SharedResource<PseudoDevice> *pseudoDevice, unsigned int logic
         writtenBytes = guestConnector.Write(PARAM(logicalChannel, logicalChannel), buffer.size(), &buffer[0]);
         if (writtenBytes < 0)
         {
-            Debug_LOG_ERROR("WriteToGuest[%1d]: guest write failed.\n", logicalChannel);
+            Debug_LOG_ERROR("WriteToGuest[%1d]: guest write failed.", logicalChannel);
         }
     }
     catch (...)
     {
-        Debug_LOG_ERROR("WriteToGuest[%1d] exception\n", logicalChannel);
+        Debug_LOG_ERROR("WriteToGuest[%1d] exception", logicalChannel);
     }
 }
 
@@ -116,7 +116,7 @@ void SendResponse(unsigned int logicalChannel, ChannelAdmin *channelAdmin, UartS
 
     response[1] = result[0];
 
-    Debug_LOG_INFO("Socket command response: cmd: %s result: %d\n",
+    Debug_LOG_INFO("Socket command response: cmd: %s result: %d",
                    UartSocketCommand(static_cast<UartSocketGuestSocketCommand>(response[0])).c_str(),
                    response[1]);
 
@@ -179,11 +179,11 @@ void HandleSocketCommand(unsigned int logicalChannel,
             /* Generic handling fo all types of control channels*/
             if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
             {
-                Debug_LOG_INFO("entry Activate Socket\n");
+                Debug_LOG_INFO("entry Activate Socket");
                 result[0] = channelAdmin->ActivateChannel(commandLogicalChannel,
                                                           channelCreators->getCreator(commandLogicalChannel)->Create());
                 result[0] = result[0] < 0 ? 1 : 0;
-                Debug_LOG_INFO("exit Activate Socket\n");
+                Debug_LOG_INFO("exit Activate Socket");
             }
             else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE)
             {
@@ -200,7 +200,7 @@ void HandleSocketCommand(unsigned int logicalChannel,
                 }
             }
         }
-        // Debug_LOG_INFO("Handle channel command: result:%d\n", result);
+        // Debug_LOG_INFO("Handle channel command: result:%d", result);
 
         //SendResponse(channelAdmin, command, PARAM(result, result < 0 ? 1 : 0));
         SendResponse(logicalChannel, channelAdmin, command, result);
@@ -234,7 +234,7 @@ void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin,
 {
     size_t bufSize = 4096;
     vector<char> buffer(bufSize);
-    Debug_LOG_INFO("FromGuestThread: starting.\n");
+    Debug_LOG_INFO("FromGuestThread: starting.");
 
     try
     {
@@ -257,13 +257,13 @@ void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin,
             else
             {
                 // Not used because: not meaningful "Resource temporarily unavailable"
-                // Debug_LOG_ERROR("GuestConnectorFromGuest: guest read failed.\n");
+                // Debug_LOG_ERROR("GuestConnectorFromGuest: guest read failed.");
             }
         }
     }
     catch (...)
     {
-        Debug_LOG_ERROR("FromGuestThread exception\n");
+        Debug_LOG_ERROR("FromGuestThread exception");
     }
 }
 
@@ -337,7 +337,7 @@ int main(int argc, char *argv[])
     GuestConnector guestConnector{&pseudoDevice, GuestConnector::GuestDirection::FROM_GUEST};
     if (!guestConnector.IsOpen())
     {
-        Debug_LOG_FATAL("Could not open pseudo device.\n");
+        Debug_LOG_FATAL("Could not open pseudo device.");
         return 0;
     }
 

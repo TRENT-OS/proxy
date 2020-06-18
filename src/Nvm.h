@@ -158,15 +158,15 @@ public:
 
         if(!file.is_open())
         {
-            Debug_LOG_ERROR("\nFile could not be opened!\n");
+            Debug_LOG_ERROR("File could not be opened!");
             return;
         }
         if(!file.good()){
-            Debug_LOG_ERROR("\nFile is corrupted!\n");
+            Debug_LOG_ERROR("File is corrupted!");
             return;
         }
 
-        Debug_LOG_INFO("\nFile opened succesfully!\n");
+        Debug_LOG_INFO("File opened succesfully!");
 
         switch (chanNum)
         {
@@ -187,7 +187,7 @@ public:
         file.seekg(0, file.beg);
 
         if (length == 0){
-            Debug_LOG_INFO("\nLength = 0, initializing!\n");
+            Debug_LOG_INFO("Length = 0, initializing!");
             for(unsigned int i = 0; i < m_memorySize; i++){
                 file.put(0);
             }
@@ -245,7 +245,7 @@ public:
                 break;
             }
             default:
-                Debug_LOG_ERROR("\nUnsupported NVM command!\n");
+                Debug_LOG_ERROR("Unsupported NVM command!");
         }
 
         for(unsigned int i = 0; i < payloadLength + RESP_HEADER_LEN; i++){
