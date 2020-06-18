@@ -123,7 +123,7 @@ public:
                 break;
             }
             default:
-                Debug_LOG_ERROR("Unsupported ChanMuxTest command!");
+                Debug_LOG_ERROR("Unsupported ChanMuxTest command 0x%02x", buffer[REQ_COMM_INDEX]);
         }
         return response;
     }

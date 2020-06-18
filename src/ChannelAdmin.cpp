@@ -160,7 +160,7 @@ int ChannelAdmin::ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevic
     // Check the logical channel is valid
     if (logicalChannel >= UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_MAX)
     {
-        Debug_LOG_INFO("ActivateChannel: %d", -1);
+        Debug_LOG_ERROR("ActivateChannel: invalid channel %d", logicalChannel);
         return -1;
     }
 

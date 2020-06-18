@@ -179,11 +179,9 @@ void HandleSocketCommand(unsigned int logicalChannel,
             /* Generic handling fo all types of control channels*/
             if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_OPEN)
             {
-                Debug_LOG_INFO("entry Activate Socket");
                 result[0] = channelAdmin->ActivateChannel(commandLogicalChannel,
                                                           channelCreators->getCreator(commandLogicalChannel)->Create());
                 result[0] = result[0] < 0 ? 1 : 0;
-                Debug_LOG_INFO("exit Activate Socket");
             }
             else if (command == UART_SOCKET_GUEST_CONTROL_SOCKET_COMMAND_CLOSE)
             {

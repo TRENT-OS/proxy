@@ -40,10 +40,11 @@ class TapChannel : public IoDevice
 
     int Create()
     {
-    	Debug_LOG_INFO("TapSocket: create TAP Dev socket start: %s:%d",__FUNCTION__,tapfd);
         channel = new Tap(tapfd);
-        Debug_LOG_INFO("TapSocket: create TAP Dev socket end: %s:%p",__FUNCTION__,channel);
-
+        if (channel == nullptr)
+        {
+            Debug_LOG_ERROR("TapChannel Create(): channel is NULL");
+        }
         return 0;
     }
 
