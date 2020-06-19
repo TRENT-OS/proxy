@@ -27,7 +27,7 @@
 #include <sys/poll.h>
 #include "uart_socket_guest_rpc_conventions.h"
 #include "LibDebug/Debug.h"
-#include "os_util/OS_Ethernet.h"
+#include "network/OS_Ethernet.h"
 
 using namespace std;
 
