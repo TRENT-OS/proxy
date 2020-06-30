@@ -312,6 +312,9 @@ int main(int argc, char *argv[])
         {
             unsigned int logicalChannel;
             buffer.resize(bufSize);
+            // Would be nice if this blocks on UART read. Removing non-blocking read flag
+            // in Tiny Frame channel config doesn't work as expected and the application blocks
+            // TODO: Find a way for UART to use blocking reads
             int readBytes = guestConnector.Read(buffer.size(), &buffer[0], &logicalChannel);
 
             if (readBytes > 0)
@@ -326,8 +329,9 @@ int main(int argc, char *argv[])
             }
             else
             {
-                // Not used because: not meaningful "Resource temporarily unavailable"
-                // Debug_LOG_ERROR("GuestConnectorFromGuest: guest read failed.");
+                // Block is executed if we read 0 bytes or an error happened.
+                // sleep 10 microsecond as the UART from/to QEMU has 36k baud rate
+                usleep(10);
             }
         }
     }
