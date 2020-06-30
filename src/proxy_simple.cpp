@@ -225,44 +225,6 @@ void HandleSocketCommand(unsigned int logicalChannel,
     }
 }
 
-// "RX" only = it receives all data from the guest (=seL4) and a) puts it into the appropriate channel or b) executes the received control command
-void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin, ChannelCreators *channelCreators)
-{
-    size_t bufSize = 4096;
-    vector<char> buffer(bufSize);
-    Debug_LOG_INFO("FromGuestThread: starting.");
-
-    try
-    {
-        while (true)
-        {
-            unsigned int logicalChannel;
-            buffer.resize(bufSize);
-            int readBytes = guestConnector->Read(buffer.size(), &buffer[0], &logicalChannel);
-
-            if (readBytes > 0)
-            {
-                //dumpFrame(&buffer[0], readBytes);
-                buffer.resize(readBytes);
-                // Handle the commands arriving on the control channel
-                HandleSocketCommand(logicalChannel,
-                                    channelAdmin,
-                                    buffer,
-                                    channelCreators);
-            }
-            else
-            {
-                // Not used because: not meaningful "Resource temporarily unavailable"
-                // Debug_LOG_ERROR("GuestConnectorFromGuest: guest read failed.");
-            }
-        }
-    }
-    catch (...)
-    {
-        Debug_LOG_ERROR("FromGuestThread exception");
-    }
-}
-
 int main(int argc, char *argv[])
 {
     // Setting stdout to unbuffered mode, so that the writes don't get cached.
@@ -339,19 +301,40 @@ int main(int argc, char *argv[])
 
     ChannelAdmin channelAdmin{&pseudoDevice};
 
-    // The "GUEST thread" is:
-    // a) receiving all hdlc frames and distributing them to the channels
-    // b) handling the channel admin commands from the guest
-
     ChannelCreators channelCreators(use_tap);
 
-    thread fromGuestThread{
-        FromGuestThread,
-        &guestConnector,
-        &channelAdmin,
-        &channelCreators};
+    size_t bufSize = 4096;
+    vector<char> buffer(bufSize);
 
-    fromGuestThread.join();
+    try
+    {
+        for (;;)
+        {
+            unsigned int logicalChannel;
+            buffer.resize(bufSize);
+            int readBytes = guestConnector.Read(buffer.size(), &buffer[0], &logicalChannel);
+
+            if (readBytes > 0)
+            {
+                //dumpFrame(&buffer[0], readBytes);
+                buffer.resize(readBytes);
+                // Handle the commands arriving on the control channel
+                HandleSocketCommand(logicalChannel,
+                                    &channelAdmin,
+                                    buffer,
+                                    &channelCreators);
+            }
+            else
+            {
+                // Not used because: not meaningful "Resource temporarily unavailable"
+                // Debug_LOG_ERROR("GuestConnectorFromGuest: guest read failed.");
+            }
+        }
+    }
+    catch (...)
+    {
+        Debug_LOG_ERROR("Main thread exception");
+    }
 
     return 0;
 }
