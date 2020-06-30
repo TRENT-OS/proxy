@@ -5,13 +5,13 @@
 
 bool is_network_tap_channel(unsigned int logicalChannel)
 {
-    return (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW  ||  logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2);
+    return (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW || logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2);
 }
 
 void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pseudoDevice, unsigned int logicalChannel, InputDevice *channel)
 {
 
-    size_t bufSize = 2048;    //256;
+    size_t bufSize = 2048; //256;
     vector<char> buffer(bufSize);
     int readBytes, writtenBytes;
 
@@ -36,29 +36,27 @@ void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pse
             {
                 if (channelAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN))
                 {
-                   // Leave the endless loop in case a close of the wan
-                   break;
+                    // Leave the endless loop in case a close of the wan
+                    break;
                 }
             }
             else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW)
             {
                 if (channelAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW))
                 {
-                   // Leave the endless loop in case a close of the wan
-                   break;
+                    // Leave the endless loop in case a close of the wan
+                    break;
                 }
-
-             }
+            }
 
             else if (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2)
             {
                 if (channelAdmin->CloseWasRequested(UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
                 {
-                   // Leave the endless loop in case a close of the wan
-                   break;
+                    // Leave the endless loop in case a close of the wan
+                    break;
                 }
-
-             }
+            }
 
             if (readBytes > 0)
             {
@@ -117,7 +115,6 @@ void ToGuestThread(ChannelAdmin *channelAdmin, SharedResource<PseudoDevice> *pse
         Debug_LOG_INFO("ToGuestThread[%1d]: closing the current NW-2 client connection", logicalChannel);
     }
 
-
     if (channelAdmin->GetChannel(logicalChannel) != nullptr)
     {
         bool unsolicited = true;
@@ -171,7 +168,6 @@ int ChannelAdmin::ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevic
         return -1;
     }
 
-
     int result = -1;
 
     lock.lock();
@@ -188,7 +184,7 @@ int ChannelAdmin::ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevic
             ioDevices[logicalChannel] = ioDevice;
 
             // Reset the close requested flag.
-          	closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
+            closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN] = false;
             closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW] = false;
             closeWasRequested[UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2] = false;
 
@@ -200,12 +196,12 @@ int ChannelAdmin::ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevic
             {
                 // Create thread
                 toGuestThreads[logicalChannel] =
-                thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), ioDevice->GetInputDevice()};
+                    thread{ToGuestThread, this, pseudoDevice, PARAM(logicalChannel, logicalChannel), ioDevice->GetInputDevice()};
             }
         }
         else
         {
-           Debug_LOG_ERROR("ActivateChannel: error creating io devices");
+            Debug_LOG_ERROR("ActivateChannel: error creating io devices");
         }
     }
     else
@@ -217,7 +213,7 @@ int ChannelAdmin::ActivateChannel(unsigned int logicalChannel, IoDevice *ioDevic
 
     Debug_LOG_DEBUG("ActivateChannel: %d", result);
 
-    if (result  < 0)
+    if (result < 0)
     {
         delete ioDevice;
     }
@@ -293,8 +289,7 @@ void ChannelAdmin::SendDataToChannel(unsigned int logicalChannel, const vector<c
 
 bool ChannelAdmin::CloseWasRequested(unsigned int logicalChannel)
 {
-    if ((logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN) || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW) \
-       || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
+    if ((logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN) || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW) || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
     {
         return false;
     }
@@ -308,8 +303,7 @@ bool ChannelAdmin::CloseWasRequested(unsigned int logicalChannel)
 
 void ChannelAdmin::RequestClose(unsigned int logicalChannel)
 {
-    if ((logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN) || (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW) \
-       || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
+    if ((logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_WAN) || (logicalChannel == UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW) || (logicalChannel != UART_SOCKET_LOGICAL_CHANNEL_CONVENTION_NW_2))
     {
         lock.lock();
         closeWasRequested[logicalChannel] = true;

@@ -27,7 +27,7 @@ using namespace std;
 
 class GuestConnector
 {
-    public:
+public:
     enum GuestDirection
     {
         FROM_GUEST,
@@ -43,7 +43,7 @@ class GuestConnector
         if (guestDirection == FROM_GUEST)
         {
             UartIoHostInit(
-                &uartIoHost, 
+                &uartIoHost,
                 tempDevice.GetResource()->c_str(),
                 tempDevice.GetType(),
                 UART_IO_HOST_FLAG_NONBLOCKING | UART_IO_HOST_FLAG_READ_ONLY);
@@ -51,7 +51,7 @@ class GuestConnector
         else
         {
             UartIoHostInit(
-                &uartIoHost, 
+                &uartIoHost,
                 tempDevice.GetResource()->c_str(),
                 tempDevice.GetType(),
                 UART_IO_HOST_FLAG_WRITE_ONLY);
@@ -64,29 +64,29 @@ class GuestConnector
         pseudoDevice->UnLock();
     }
 
-    ~GuestConnector() 
-    { 
+    ~GuestConnector()
+    {
         Close();
-        UartHdlcDeInit(&uartHdlc); 
+        UartHdlcDeInit(&uartHdlc);
     }
 
-    int Read(unsigned int length, char *buf, unsigned int *logicalChannel) 
-    { 
+    int Read(unsigned int length, char *buf, unsigned int *logicalChannel)
+    {
         int result;
 
         pseudoDevice->Lock();
-        result = UartHdlcRead(&uartHdlc, length, buf, logicalChannel); 
+        result = UartHdlcRead(&uartHdlc, length, buf, logicalChannel);
         pseudoDevice->UnLock();
 
         return result;
-    } 
+    }
 
-    int Write(unsigned int logicalChannel, unsigned int length, const char *buf) 
-    { 
+    int Write(unsigned int logicalChannel, unsigned int length, const char *buf)
+    {
         int result;
 
         pseudoDevice->Lock();
-        result = UartHdlcWrite(&uartHdlc, logicalChannel, length, buf); 
+        result = UartHdlcWrite(&uartHdlc, logicalChannel, length, buf);
         pseudoDevice->UnLock();
 
         return result;
@@ -94,7 +94,7 @@ class GuestConnector
 
     bool IsOpen() const { return isOpen; }
 
-    private:
+private:
     SharedResource<PseudoDevice> *pseudoDevice;
     UartIoHost uartIoHost;
     UartHdlc uartHdlc;
@@ -103,4 +103,3 @@ class GuestConnector
     int Open() { return UartHdlcOpen(&uartHdlc); }
     int Close() { return UartHdlcClose(&uartHdlc); }
 };
-
