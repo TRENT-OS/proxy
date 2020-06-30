@@ -114,22 +114,14 @@ public:
     {
         int ret;
         struct pollfd pfd = {.fd = tapfd, .events = POLLIN};
-        ret = poll(&pfd, 1, 0);
-        if (ret < 0)
+        // By setting timeout to -1, we will only be woken up when there is
+        // data to be read
+        ret = poll(&pfd, 1, -1);
+        // Poll should never return 0 when timeout is -1. In case it happens,
+        // treat it as error.
+        if (ret <= 0)
         {
             Debug_LOG_ERROR("[%s] poll() failed, error %d", devname, ret);
-            return -1;
-        }
-
-        // ToDo: we consider 0 as an error, but actually it indicates that the
-        //       call has timed out and no event happened. We should be able to
-        //       handle cases where we read no data gracefully, ie check the
-        //       state and then either abort or call read again
-        //       Furthermore, it seems that we do not really block here but get
-        //       the return code 0 very often, so effectively, it's more a busy
-        //       waiting what we do.
-        if (0 == ret)
-        {
             return -1;
         }
 
