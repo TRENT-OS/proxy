@@ -225,8 +225,6 @@ void HandleSocketCommand(unsigned int logicalChannel,
     }
 }
 
-static bool KeepFromGuestThreadAlive = true;
-
 // "RX" only = it receives all data from the guest (=seL4) and a) puts it into the appropriate channel or b) executes the received control command
 void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin, ChannelCreators *channelCreators)
 {
@@ -236,7 +234,7 @@ void FromGuestThread(GuestConnector *guestConnector, ChannelAdmin *channelAdmin,
 
     try
     {
-        while (KeepFromGuestThreadAlive)
+        while (true)
         {
             unsigned int logicalChannel;
             buffer.resize(bufSize);
@@ -353,7 +351,6 @@ int main(int argc, char *argv[])
         &channelAdmin,
         &channelCreators};
 
-    // KeepFromGuestThreadAlive = false;
     fromGuestThread.join();
 
     return 0;
