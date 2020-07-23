@@ -383,7 +383,7 @@ public:
                         b = &buf[buffer_offset - frame_len];
                     }
 
-                    Debug_LOG_INFO("[%s] writing frame of %zu bytes",
+                    Debug_LOG_DEBUG("[%s] writing frame of %zu bytes",
                                    devname, frame_len);
                     int ret = write(tapfd, b, frame_len);
                     if (ret < 0)
