@@ -46,11 +46,6 @@ target_compile_options(${PROJECT_NAME}
         -pthread
 )
 
-target_compile_definitions(${PROJECT_NAME}
-    PRIVATE
-        PAGE_SIZE=4096
-)
-
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         pthread
