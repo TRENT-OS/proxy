@@ -11,6 +11,11 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 OS_SDK_PATH=$1
+if [[ ! -e ${OS_SDK_PATH} ]]
+    echo "OS_SDK_PATH invalid: ${OS_SDK_PATH}"
+    exit 1
+fi
+
 
 if [[ -e ${BUILD_DIR} ]] && [[ ! -e ${BUILD_DIR}/rules.ninja ]]; then
     echo "clean broken build folder and re-initialize it"
@@ -21,10 +26,11 @@ if [[ ! -e ${BUILD_DIR} ]]; then
     # use subshell to configure the build
     (
         mkdir -p ${BUILD_DIR}
+        ABS_OS_SDK_PATH=$(realpath ${OS_SDK_PATH})
         cd ${BUILD_DIR}
 
         CMAKE_PARAMS=(
-            -DOS_SDK_SOURCE_PATH:STRING=${OS_SDK_PATH}
+            -D OS_SDK_PATH:PATH=${ABS_OS_SDK_PATH}
         )
 
         cmake ${CMAKE_PARAMS[@]} -G Ninja ${BUILD_SCRIPT_DIR}
