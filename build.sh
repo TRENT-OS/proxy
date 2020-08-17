@@ -1,4 +1,4 @@
-#!/bin/bash -eu
+#!/bin/bash -ue
 
 BUILD_SCRIPT_DIR=$(cd `dirname $0` && pwd)
 
