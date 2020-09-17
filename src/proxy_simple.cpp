@@ -296,7 +296,7 @@ int main(int argc, char *argv[])
     if (!guestConnector.IsOpen())
     {
         Debug_LOG_FATAL("Could not open pseudo device.");
-        return 0;
+        return -1;
     }
 
     ChannelAdmin channelAdmin{&pseudoDevice};
