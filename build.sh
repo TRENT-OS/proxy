@@ -11,7 +11,7 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 OS_SDK_PATH=$1
-if [[ ! -e ${OS_SDK_PATH} ]]
+if [[ ! -e ${OS_SDK_PATH} ]]; then
     echo "OS_SDK_PATH invalid: ${OS_SDK_PATH}"
     exit 1
 fi
