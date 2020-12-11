@@ -456,16 +456,17 @@ public:
 
         memcpy(mac, &eth.ifr_hwaddr.sa_data, 6);
 
+        // We get the MAC address of the TAP device and we need to generate
+        // a new one for the nic driver which avoids an address conflict
+        // The original mac is generated randomly by the Linux kernel and we
+        // just increment it.
+        mac[5]++;
+
         // crude hack to keep to allow some filtering later. Actually none of
         // this should be hard coded, but a feature that can be set for each
         // TAP channel by whoever is using it.
         memcpy(mac_tap, mac, 6);
         strncpy(devname, name, 5);
-
-        // ToDo: why do we do this? Any why does the OS NIC driver do the
-        //       same thing also. Seem this is another quirk to be clarified
-        //       one day.
-        mac_tap[5]++;
 
         Debug_LOG_DEBUG("MAC %02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
