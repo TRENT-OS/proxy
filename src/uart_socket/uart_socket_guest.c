@@ -3,14 +3,14 @@
 
 #include "uart_socket_guest.h"
 #include "uart_socket_guest_rpc_conventions.h"
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
 #include <limits.h>
 
-#include "compiler.h"
+#include "lib_compiler/compiler.h"
 
 #if defined(CAMKES)
 #include "OS_Error.h"

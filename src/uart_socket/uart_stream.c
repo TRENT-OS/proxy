@@ -1,6 +1,6 @@
 #include "i_uart_fifo.h"
 #include "uart_stream.h"
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 
 #include <stdio.h>
 #include <stdbool.h>

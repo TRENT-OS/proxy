@@ -1,6 +1,6 @@
 #include "uart_hdlc.h"
 #include "type.h"
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 
 #include <stdio.h>
 #include <stdbool.h>

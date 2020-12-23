@@ -2,7 +2,7 @@
 #pragma once
 
 #include "i_uart_fifo.h"
-#include "LibUtil/CharFifo.h"
+#include "lib_util/CharFifo.h"
 
 typedef struct
 {

@@ -59,6 +59,8 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
         pthread
         os_core_api
-        os_libs
+        lib_compiler
+        lib_debug
+        lib_util
         third_party_tinyframe_static_cpp
 )

@@ -7,7 +7,7 @@
 #include "Channel.h"
 #include "ChannelAdmin.h"
 #include "ChannelCreators.h"
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 #include "uart_socket_guest_rpc_conventions.h"
 #include <chrono>
 #include <thread>

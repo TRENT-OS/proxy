@@ -1,5 +1,5 @@
 #include "uart_fifo.h"
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 
 size_t FifoCapacity(struct _IUartFifo *instance)
 {

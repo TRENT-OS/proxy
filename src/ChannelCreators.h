@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 #include "TapChannelCreator.h"
 #include "NvmChannelCreator.h"
 #include "ChanMuxTestChannelCreator.h"

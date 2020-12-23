@@ -4,7 +4,7 @@
 #include "IoDevices.h"
 #include "TapChannel.h"
 
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 
 
 using namespace std;

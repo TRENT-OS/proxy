@@ -11,7 +11,7 @@
 #include <string.h>
 #include <fstream>
 
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 #include <ios>
 
 #define CMD_TEST_OVERFLOW       0

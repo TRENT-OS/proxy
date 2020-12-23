@@ -3,7 +3,7 @@
 #include "IoDevices.h"
 #include "NvmChannel.h"
 
-#include "LibDebug/Debug.h"
+#include "lib_debug/Debug.h"
 
 
 using namespace std;
