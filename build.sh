@@ -4,7 +4,7 @@ BUILD_SCRIPT_DIR=$(cd `dirname $0` && pwd)
 
 # by convention, the build always happens in a dedicated sub folder of the
 # current folder where the script is invoked in
-BUILD_DIR=build
+BUILD_DIR=build_proxy
 
 if [ "$#" -ne 1 ]; then
     echo "Illegal number of parameters, OS_SDK_PATH needed!"
