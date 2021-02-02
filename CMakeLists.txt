@@ -61,6 +61,6 @@ target_link_libraries(${PROJECT_NAME}
         os_core_api
         lib_compiler
         lib_debug
-        lib_util
+        lib_utils
         third_party_tinyframe_static_cpp
 )
