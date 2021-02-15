@@ -8,6 +8,7 @@ HENSOLDT Cyber GmbH, except those from the 3rd party modules mentioned below.
 The table lists the 3rd party modules used within this module, their licenses
 and the source from which they were obtained:
 
-| Name      | SPDX Identifier | Source                                    |
-|-----------|-----------------|-------------------------------------------|
-| tinyframe | MIT             | <https://github.com/MightyPork/TinyFrame> |
+| Name      | SPDX Identifier   | Source                                    |
+|-----------|-------------------|-------------------------------------------|
+| tinyframe | MIT               | <https://github.com/MightyPork/TinyFrame> |
+| pthread   | LGPL-2.1-or-later | Provided by the operating system.         |
