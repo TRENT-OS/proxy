@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2019, Hensoldt Cyber GmbH
+ * Copyright (C) 2019-2021, HENSOLDT Cyber GmbH
  */
 #pragma once
 
@@ -14,7 +14,8 @@
 #include "lib_debug/Debug.h"
 #include <ios>
 
-#define FILENAME_LEN            7
+// Length of the filename in format "nvm_01" (excluding the null terminator).
+#define FILENAME_LEN            6
 
 #define CMD_GET_SIZE            0
 #define CMD_WRITE               1
@@ -54,7 +55,7 @@ using namespace std;
 class Nvm : public InputDevice, public OutputDevice
 {
 private:
-    char m_filename[FILENAME_LEN];
+    char m_filename[FILENAME_LEN + 1]; // null terminated string
     size_t m_memorySize;
 
     void m_cpyIntToBuf(uint32_t integer, unsigned char* buf){
