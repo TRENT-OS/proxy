@@ -1,6 +1,6 @@
 # Proxy App
 
-The host proxy application for TRENTOS-M running in QEMU.
+The host proxy application for TRENTOS running in QEMU.
 This proxy implements the communication channels to the host machine in order to
 
 * simulate Non Volatile Memory
