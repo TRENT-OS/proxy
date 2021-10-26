@@ -1,7 +1,7 @@
 #
 # Proxy Application
 #
-# Copyright (C) 2019-2020, Hensoldt Cyber GmbH
+# Copyright (C) 2019-2020, HENSOLDT Cyber GmbH
 #
 
 cmake_minimum_required(VERSION 3.10)
