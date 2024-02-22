@@ -32,7 +32,7 @@ check out into folder "src"
 
 run build, will create a folder "build" with the application binary
 
-    src/build.sh <path-to-OS-SDK>
+    trentos/build.sh <path-to-OS-SDK>
 
 ### Synopsis
     ./proxy_app -c [<connectionType>:<Param>] -t [tap_mode]
@@ -42,3 +42,12 @@ run build, will create a folder "build" with the application binary
 Run application and connect to QEMU on TCP port 4444, allowing for the creation and usage of TAP devices
 
     build/proxy_app -c TCP:4444 -t 1
+
+## 3rd Party Modules
+
+The table lists the 3rd party modules used within this module, their licenses
+and the source from which they were obtained:
+
+| Name      | SPDX Identifier | Source                                    |
+|-----------|-----------------|-------------------------------------------|
+| tinyframe | MIT             | <https://github.com/MightyPork/TinyFrame> |
